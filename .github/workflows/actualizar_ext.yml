@@ -60,6 +60,6 @@ jobs:
           if git diff --staged --quiet; then
             echo "No hay cambios que commitear"
           else
-            git commit -m "🤖 Actualizar archivo M3U modificado - $(TZ='Europe/Madrid' date +'%Y-%m-%d %H:%M:%S')"
+            git commit -m "🤖 Lista M3U Ext. - $(TZ='Europe/Madrid' date +'%Y-%m-%d %H:%M:%S')"
             git push
           fi
