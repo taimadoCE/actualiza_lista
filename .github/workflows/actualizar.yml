@@ -40,12 +40,12 @@ jobs:
         run: |
           # Cambia estos valores por la segunda IP y puerto que necesites
           sed 's/127.0.0.1:6878/192.168.1.57:6888/g' lista_original.m3u > lista_ext.m3u
-          echo "✅ Segunda versión creada: lista_modificada_2.m3u (192.168.1.57:6888)"
+          echo "✅ Segunda versión creada: lista_modificada.m3u (192.168.1.57:6888)"
         
       - name: Verificar si hay cambios
         id: verify_diff
         run: |
-          git add lista_modificada.m3u lista_modificada_2.m3u
+          git add lista_modificada.m3u lista_modificada.m3u
           if git diff --staged --quiet; then
             echo "changed=false" >> $GITHUB_OUTPUT
           else
