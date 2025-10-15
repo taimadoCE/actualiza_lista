@@ -2,7 +2,12 @@ name: Actualizar archivo M3U
 
 on:
   schedule:
-    - cron: '0 12 * * *'
+    - cron: '08 11 * * *'  # Todos los días a las 13:08 hora de España
+    - cron: '08 14 * * *'  # Todos los días a las 16:08 hora de España
+    - cron: '20 11 * * *'  # Todos los días a las 13:20 hora de España
+    - cron: '29 16 * * *'  # Todos los días a las 18:20 hora de España
+    - cron: '29 17 * * *'  # Todos los días a las 19:20 hora de España
+    - cron: '20 18 * * *'  # Todos los días a las 20:20 hora de España
   workflow_dispatch: # Permite ejecutar manualmente el workflow
 
 permissions:
