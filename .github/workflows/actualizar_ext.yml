@@ -22,7 +22,7 @@ jobs:
         run: |
           # Variables de configuración
           ARCHIVO_ORIGINAL="lista_modificada.m3u"
-          ARCHIVO_NUEVO="lista_exterior.m3u"
+          ARCHIVO_NUEVO="lista_ext.m3u"
           
           # IP y puerto original que quieres reemplazar
           IP_ORIGINAL="192.168.1.57"
