@@ -1,0 +1,57 @@
+name: Actualizar archivo M3U
+
+on:
+  schedule:
+    - cron: '0 12 * * *'
+  workflow_dispatch: # Permite ejecutar manualmente el workflow
+
+jobs:
+  update-m3u:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repositorio
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Modificar archivo M3U
+        run: |
+          # Variables de configuración
+          ARCHIVO_ORIGINAL="lista_modificada.m3u"
+          ARCHIVO_NUEVO="lista_exterior.m3u"
+          
+          # IP y puerto original que quieres reemplazar
+          IP_ORIGINAL="192.168.1.57"
+          PUERTO_ORIGINAL="6778"
+          
+          # Nueva IP y puerto
+          IP_NUEVA="10.0.0.50"
+          PUERTO_NUEVO="9090"
+          
+          # Verificar que existe el archivo original
+          if [ ! -f "$ARCHIVO_ORIGINAL" ]; then
+            echo "Error: No se encuentra el archivo $ARCHIVO_ORIGINAL"
+            exit 1
+          fi
+          
+          # Crear el nuevo archivo con las sustituciones
+          sed "s/${IP_ORIGINAL}:${PUERTO_ORIGINAL}/${IP_NUEVA}:${PUERTO_NUEVO}/g" "$ARCHIVO_ORIGINAL" > "$ARCHIVO_NUEVO"
+          
+          echo "Archivo modificado creado: $ARCHIVO_NUEVO"
+          echo "Cambios realizados: ${IP_ORIGINAL}:${PUERTO_ORIGINAL} -> ${IP_NUEVA}:${PUERTO_NUEVO}"
+      
+      - name: Commit y push del archivo modificado
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          
+          git add playlist_modificado.m3u
+          
+          # Solo hacer commit si hay cambios
+          if git diff --staged --quiet; then
+            echo "No hay cambios que commitear"
+          else
+            git commit -m "🤖 Actualizar archivo M3U modificado - $(date +'%Y-%m-%d %H:%M:%S')"
+            git push
+          fi
