@@ -5,6 +5,9 @@ on:
     - cron: '0 12 * * *'
   workflow_dispatch: # Permite ejecutar manualmente el workflow
 
+permissions:
+  contents: write
+
 jobs:
   update-m3u:
     runs-on: ubuntu-latest
@@ -46,7 +49,7 @@ jobs:
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
           
-          git add playlist_modificado.m3u
+          git add lista_ext.m3u
           
           # Solo hacer commit si hay cambios
           if git diff --staged --quiet; then
