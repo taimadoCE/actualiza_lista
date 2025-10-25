@@ -3,7 +3,7 @@ name: Actualizar lista IPTV
 on:
   schedule:
     - cron: '05 07 * * *'  # Todos los días a las 09:05 hora de España
-    - cron: '05 14 * * *'  # Todos los días a las 16:05 hora de España
+    - cron: '55 13 * * *'  # Todos los días a las 16:05 hora de España
     - cron: '05 15 * * *'  # Todos los días a las 17:05 hora de España
     - cron: '05 16 * * *'  # Todos los días a las 18:05 hora de España
     - cron: '05 17 * * *'  # Todos los días a las 19:05 hora de España
