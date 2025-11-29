@@ -37,8 +37,8 @@ jobs:
              
       - name: Crear primera versión modificada
         run: |
-          sed 's/127.0.0.1:6878/192.168.10.245:6878/g' lista_original.m3u > lista_modificada.m3u
-          echo "✅ Primera versión creada: lista_modificada.m3u (192.168.10.245:6878)"
+          sed 's/127.0.0.1:6878/192.168.1.57:8080/g' lista_original.m3u > lista_modificada.m3u
+          echo "✅ Primera versión creada: lista_modificada.m3u (192.168.1.57:8080)"
             
       - name: Crear segunda versión modificada
         run: |
