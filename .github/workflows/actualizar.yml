@@ -37,8 +37,8 @@ jobs:
              
       - name: Crear primera versión modificada
         run: |
-          sed 's/127.0.0.1:6878/acexy.taimado.duckdns.org/g' lista_original.m3u > lista_modificada.m3u
-          echo "✅ Primera versión creada: lista_modificada.m3u (acexy.taimado.duckdns.org)"
+          sed 's/127.0.0.1:6878/acexy.taimado.qzz.io/g' lista_original.m3u > lista_modificada.m3u
+          echo "✅ Primera versión creada: lista_modificada.m3u (acexy.taimado.qzz.io)"
             
       - name: Crear segunda versión modificada
         run: |
