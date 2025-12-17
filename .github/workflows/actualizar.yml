@@ -48,7 +48,7 @@ jobs:
       - name: Verificar si hay cambios
         id: verify_diff
         run: |
-          git add lista_modificada.m3u lista_local.m3u
+          git add lista_modificada.m3u lista_dispatcharr.m3u
           if git diff --staged --quiet; then
             echo "changed=false" >> $GITHUB_OUTPUT
           else
