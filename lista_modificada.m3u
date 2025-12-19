@@ -365,6 +365,7 @@ http://acexy.taimado.qzz.io/ace/getstream?id=0b48cd93de3c714e36961a93805798307a5
 http://acexy.taimado.qzz.io/ace/getstream?id=3bdf355aeaac39d20e368ebb2ed72b9f71bf9090
 #EXTINF:-1 tvg-logo="https://www.cxtv.com.br/img/Tvs/Logo/webp-l/3ee9eef4eb12ec1b3e26049e79a43606.webp" tvg-id="" group-title="MOTOR", CANAL MOTOR f2d5 --> NEW LOOP
 http://acexy.taimado.qzz.io/ace/getstream?id=35e17cc84abc5e393b5acd688536a9681105f2d5
+#EXTINF:-1 tvg-id="" group-title="MOTOR", MOTORS TV HD df98 --> NEW LOOP
 http://acexy.taimado.qzz.io/ace/getstream?id=442aeb6643b8836f9d00361c9e48eeb0841ddf98
 #EXTINF:-1 tvg-logo="https://raw.githubusercontent.com/davidmuma/picons_dobleM/master/icon/Motorvision%20TV.png" tvg-id="Motorvision tv" group-title="MOTOR", MOTORVISION f404 --> NEW LOOP
 http://acexy.taimado.qzz.io/ace/getstream?id=9c75e6ed0671eec6670cb2eabcc7d78267c7f404
@@ -372,6 +373,7 @@ http://acexy.taimado.qzz.io/ace/getstream?id=9c75e6ed0671eec6670cb2eabcc7d78267c
 http://acexy.taimado.qzz.io/ace/getstream?id=651dd1e689a9a7d3b0695191dcf44b4d6e7541eb
 #EXTINF:-1 tvg-logo="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSsYoLr1q3_h6Jo21AgDZhyK62VNC6EdYRbAg&s" tvg-id="DE | Rally TV" group-title="MOTOR", RALLY TV b2ea --> NEW ERA III
 http://acexy.taimado.qzz.io/ace/getstream?id=8e96e35afd910d1a056dc7bf25139b8e2849b2ea
+#EXTINF:-1 tvg-id="" group-title="MOTOR", RETROVISION MOTOR bff3 --> NEW LOOP
 http://acexy.taimado.qzz.io/ace/getstream?id=b8b8c4470d3d27c75302cf49ab6c4b52a660bff3
 #EXTINF:-1 tvg-logo="https://github.com/davidmuma/picons_dobleM/blob/master/icon/AMC%20HD.png?raw=true" tvg-id="AMC HD" group-title="MOVISTAR", AMC HD 20f3 --> NEW ERA
 http://acexy.taimado.qzz.io/ace/getstream?id=55ff9ee631af351f365f51cf3601695bf1fd20f3
