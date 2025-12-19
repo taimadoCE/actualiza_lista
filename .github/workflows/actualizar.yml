@@ -22,11 +22,11 @@ jobs:
     runs-on: ubuntu-latest
     env:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-            
+        
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
-                  
+             
       - name: Descargar archivo original
         run: |
           curl -L -f "https://ipfs.io/ipns/k2k4r8oqlcjxsritt5mczkcn4mmvcmymbqw7113fz2flkrerfwfps004/data/listas/lista_iptv.m3u" -o lista_original.m3u
@@ -34,22 +34,17 @@ jobs:
             echo "Error: El archivo descargado está vacío"
             exit 1
           fi
-          
-      - name: Eliminar líneas con logo problemático
-        run: |
-          sed -i '/tvg-logo="https:\/\/www\.mxgp\.com\/sites\/default\/files\/news\/image\/logo%20Motors%20TV\.jpg"/d' lista_original.m3u
-          echo "✅ Líneas con logo de MXGP eliminadas"
-                  
+             
       - name: Crear primera versión modificada
         run: |
           sed 's/127.0.0.1:6878/acexy.taimado.qzz.io/g' lista_original.m3u > lista_modificada.m3u
           echo "✅ Primera versión creada: lista_modificada.m3u (acexy.taimado.qzz.io)"
-                 
+            
       - name: Crear segunda versión modificada
         run: |
           sed 's/127.0.0.1:6878/192.168.102.254:6878/g' lista_original.m3u > lista_dispatcharr.m3u
-          echo "✅ Segunda versión creada: lista_dispatcharr.m3u (192.168.102.254:6878)"
-                          
+          echo "✅ Segunda versión creada: lista_dispatcharr.m3u (192.168.102.254:6878"
+                     
       - name: Verificar si hay cambios
         id: verify_diff
         run: |
@@ -59,11 +54,11 @@ jobs:
           else
             echo "changed=true" >> $GITHUB_OUTPUT
           fi
-                  
+             
       - name: Commit y push de las listas modificadas
         if: steps.verify_diff.outputs.changed == 'true'
         run: |
           git config --global user.email "actions@github.com"
           git config --global user.name "GitHub Actions"
           git commit -m "🤖 Lista M3U - $(TZ='Europe/Madrid' date +'%Y-%m-%d %H:%M:%S')"
-          git push
+
