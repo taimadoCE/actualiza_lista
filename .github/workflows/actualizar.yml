@@ -2,7 +2,7 @@ name: Actualizar lista IPTV
 
 on:
   schedule:
-    - cron: '5 7,8,9,10,11,12,13,14,15,16,17,18,19 * * *'  # Todos los días a las horas y cinco desde las 9 hasta las 21 (hora de España)
+    - cron: '5 * * * *'  # Cada hora en el minuto 05 (UTC). El job filtra por Europe/Madrid para ejecutar solo 09:05–21:05 hora de España.
   workflow_dispatch:  # Permite ejecutarlo manualmente
 
 permissions:
@@ -17,7 +17,20 @@ jobs:
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+          fetch-depth: 0
              
+      - name: Ejecutar solo de 09:05 a 21:05 (Europe/Madrid)
+        run: |
+          HOUR=$(TZ='Europe/Madrid' date +'%H')
+          MINUTE=$(TZ='Europe/Madrid' date +'%M')
+          if [ "$HOUR" -lt 9 ] || [ "$HOUR" -gt 21 ]; then
+            echo "Fuera de horario Europe/Madrid: ${HOUR}:${MINUTE}. Saliendo sin hacer nada."
+            exit 0
+          fi
+          echo "Dentro de horario Europe/Madrid: ${HOUR}:${MINUTE}. Continúo..."
+        
       - name: Descargar archivo original
         run: |
           curl -L -f "https://ipfs.io/ipns/k2k4r8oqlcjxsritt5mczkcn4mmvcmymbqw7113fz2flkrerfwfps004/data/listas/lista_iptv.m3u" -o lista_original.m3u
