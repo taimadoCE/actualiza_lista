@@ -1,4 +1,4 @@
-name: Actualizar lista IPTV
+name: Actualizar
 
 on:
   schedule:
