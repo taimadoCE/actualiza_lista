@@ -39,6 +39,11 @@ jobs:
             exit 1
           fi
 
+      - name: Lista origen
+        run: |
+          sed 's/127.0.0.1:6878/127.0.0.1:6878/g' lista_original.m3u > lista_origen.m3u
+          echo "✅ Lista origen creada: lista_origen.m3u (127.0.0.1:6878)"
+      
       - name: Crear primera versión modificada
         run: |
           sed 's#http://127.0.0.1:6878#https://acexy.taimado.duckdns.org#g' lista_original.m3u > lista_modificada.m3u
@@ -62,7 +67,7 @@ jobs:
       - name: Verificar si hay cambios
         id: verify_diff
         run: |
-          git add lista_modificada.m3u lista_local.m3u lista_tanix.m3u lista_modificada_ce.m3u
+          git add lista_modificada.m3u lista_local.m3u lista_tanix.m3u lista_modificada_ce.m3u lista_origen.m3u 
           if git diff --staged --quiet; then
             echo "changed=false" >> $GITHUB_OUTPUT
           else
