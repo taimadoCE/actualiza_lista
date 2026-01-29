@@ -61,7 +61,7 @@ jobs:
 
       - name: Crear cuata versión modificada
         run: |
-          sed 's#http://127.0.0.1:6878#http://acexy.ce.taimado.duckdns.org#g' lista_original.m3u > lista_modificada_ce.m3u
+          sed 's#http://127.0.0.1:6878#https://acexy.ce.taimado.duckdns.org#g' lista_original.m3u > lista_modificada_ce.m3u
           echo "✅ Cuarta versión creada: lista_modificada_ce.m3u (acexy.ce.taimado.duckdns.org)"
           
       - name: Verificar si hay cambios
