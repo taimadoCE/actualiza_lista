@@ -33,7 +33,7 @@ jobs:
 
       - name: Descargar archivo original
         run: |
-          curl -L -f "https://ipfs.io/ipns/k2k4r8oqlcjxsritt5mczkcn4mmvcmymbqw7113fz2flkrerfwfps004/data/listas/lista_iptv.m3u" -o lista_original.m3u
+          curl -L -f "https://ipfs.io/ipns/k51qzi5uqu5dh5qej4b9wlcr5i6vhc7rcfkekhrxqek5c9lk6gdaiik820fecs/hashes.m3u" -o lista_original.m3u
           if [ ! -s lista_original.m3u ]; then
             echo "Error: El archivo descargado está vacío"
             exit 1
