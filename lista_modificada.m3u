@@ -1,112 +1,159 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Elcano.top - AceStream IDs</title>
-    <style>
-        body { font-family: Arial, sans-serif; background-color: #0f172a; color: #e2e8f0; margin: 0; padding: 0; }
-        header { background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); padding: 1rem; text-align: center; border-bottom: 1px solid #334155; }
-        header h1 { margin: 0; font-size: 1.5rem; color: #94a3b8; }
-        header h2 { margin: 0.3rem 0 0 0; font-size: 1.8rem; color: #60a5fa; }
-        header p { margin: 0.5rem 0 0 0; color: #64748b; }
-        .formats { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin-top: 1rem; }
-        .formats a { background: #334155; color: #60a5fa; padding: 6px 12px; border-radius: 4px; text-decoration: none; border: 1px solid #475569; }
-        .formats-copy { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin-top: 0.8rem; }
-        .formats-copy button { background: #1e3a8a; color: #60a5fa; padding: 6px 12px; border-radius: 4px; border: 1px solid #2563eb; cursor: pointer; transition: all 0.2s; font-family: Arial, sans-serif; font-size: 14px; }
-        .formats-copy button:hover { background: #1e40af; }
-        .formats-copy button.copied { background: #22c55e; color: white; border-color: #16a34a; }
-        .mylinkpaste-section { margin-top: 1.2rem; padding-top: 1rem; border-top: 1px solid #334155; }
-        .mylinkpaste-box { display: flex; gap: 12px; justify-content: center; align-items: center; flex-wrap: wrap; }
-        .mylinkpaste-label { color: #94a3b8; font-weight: bold; }
-        .mylinkpaste-code { background: #0f172a; color: #fbbf24; padding: 6px 12px; border-radius: 4px; font-family: monospace; cursor: pointer; border: 1px solid #475569; transition: all 0.2s; }
-        .mylinkpaste-code:hover { background: #1e293b; }
-        .mylinkpaste-code.copied { background: #22c55e; color: white; }
-        .mylinkpaste-apk { background: #22c55e; color: white; padding: 6px 12px; border-radius: 4px; text-decoration: none; font-weight: bold; }
-        .mylinkpaste-apk:hover { background: #16a34a; }
-        main { padding: 2rem; max-width: 1200px; margin: 0 auto; }
-        .links-container { background-color: #1e293b; border-radius: 8px; padding: 1rem; border: 1px solid #334155; }
-        .group-header { font-size: 1.2rem; font-weight: bold; color: #60a5fa; margin: 1.5rem 0 0.5rem 0; padding-bottom: 0.5rem; border-bottom: 1px solid #334155; }
-        .link-name { font-weight: bold; color: #f1f5f9; }
-        .link-url a { color: #60a5fa; text-decoration: none; word-break: break-all; }
-    </style>
-</head>
-<body>
-    <header>
-        <h1><a href="https://elcano.top" target="_blank" style="color: #94a3b8; text-decoration: none;">Elcano.top</a> by @Lucas_m_o_o_m ... <strong>Vacaciones en el Mar.</strong></h1>
-        <h2>AceStream IDs</h2>
-        <p>Actualizado: 2026-02-06T18:24:16Z | 73 hashes</p>
-        <div class="formats">
-            <a href="hashes.json" target="_blank">📄 JSON</a>
-            <a href="hashes.m3u" target="_blank">🎵 M3U OTT</a>
-            <a href="hashes_acestream.m3u" target="_blank">📺 M3U Acestream</a>
-            <a href="hashes_kodi.m3u" target="_blank">🎮 M3U Kodi</a>
-            <a href="hashes.txt" target="_blank">📝 TXT</a>
-        </div>
-        <div class="formats-copy">
-            <button onclick="copyToClipboard('hashes.json', this)">📋 Copiar JSON</button>
-            <button onclick="copyToClipboard('hashes.m3u', this)">📋 Copiar M3U OTT</button>
-            <button onclick="copyToClipboard('hashes_acestream.m3u', this)">📋 Copiar M3U Acestream</button>
-            <button onclick="copyToClipboard('hashes_kodi.m3u', this)">📋 Copiar M3U Kodi</button>
-            <button onclick="copyToClipboard('hashes.txt', this)">📋 Copiar TXT</button>
-        </div>
-        <div class="mylinkpaste-section">
-            <div class="mylinkpaste-box">
-                <span class="mylinkpaste-label">📱 MylinkPaste</span>
-                <code class="mylinkpaste-code" onclick="navigator.clipboard.writeText('695d5309d05ee80b5cd7efad'); this.classList.add('copied'); this.dataset.original = this.textContent; this.textContent = '✓ Copiado!'; setTimeout(() => { this.textContent = this.dataset.original; this.classList.remove('copied'); }, 1500);">695d5309d05ee80b5cd7efad</code>
-                <a href="https://ff46f78c.aaapk.pages.dev/MylinkPaste-v4.1.apk" class="mylinkpaste-apk">⬇️ Descargar APK</a>
-            </div>
-        </div>
-    </header>
-    <main>
-        <div class="links-container" id="linksList"></div>
-    </main>
-    <script>
-        function copyToClipboard(filename, button) {
-            // Obtener la URL completa actual
-            const currentUrl = window.location.href;
-            
-            // Eliminar index.html si está presente al final
-            let baseUrl = currentUrl.replace(/index\.html$/, '');
-            
-            // Asegurar que termina con /
-            if (!baseUrl.endsWith('/')) {
-                baseUrl += '/';
-            }
-            
-            // Construir URL completa del archivo
-            const fullUrl = baseUrl + filename;
-            
-            navigator.clipboard.writeText(fullUrl).then(() => {
-                const originalText = button.textContent;
-                button.classList.add('copied');
-                button.textContent = '✓ Copiado!';
-                setTimeout(() => {
-                    button.textContent = originalText;
-                    button.classList.remove('copied');
-                }, 1500);
-            }).catch(err => {
-                console.error('Error al copiar:', err);
-            });
-        }
-        
-        const links = [{ "name": "DAZN 1", "url": "acestream://7ba1f321f4d0791b7ebd42f41a07c1cd1479e784", "group": "DAZN" },{ "name": "DAZN 1", "url": "acestream://9afc89481b721ce6c326c85e47148676077b8e62", "group": "DAZN" },{ "name": "DAZN 2", "url": "acestream://f12038c7fe603ed93fa9475d60692dd95bb7b17f", "group": "DAZN" },{ "name": "DAZN 2 1080p", "url": "acestream://13a16a0630ae87bd97d6ba4165963c201c9a2e9c", "group": "DAZN" },{ "name": "Eurosport 1 720p", "url": "acestream://a7b42f9d65636d1b1d9316d3e91ebe12b192658c", "group": "EUROSPORT" },{ "name": "Eurosport 1 1080p", "url": "acestream://0db68ab752b50e6bb257eef22d102c1d29cd92ea", "group": "EUROSPORT" },{ "name": "Eurosport 2 720p", "url": "acestream://5c910d614894635153a7d42de98cc2e4a958a53f", "group": "EUROSPORT" },{ "name": "Eurosport 2 1080p", "url": "acestream://24f940fef7e270b6b3ae5d9dc713a80c8345cfba", "group": "EUROSPORT" },{ "name": "DAZN F1 720p", "url": "acestream://88d7cdd80be237ae21314f7f1b6582991498e8ba", "group": "FORMULA 1" },{ "name": "DAZN F1 720p", "url": "acestream://ed6188dcbb491efeb2092c1a6199226c27f61727", "group": "FORMULA 1" },{ "name": "DAZN F1 1080p", "url": "acestream://b08e158ea3f5c72084f5ff8e3c30ca2e4d1ff6d1", "group": "FORMULA 1" },{ "name": "DAZN F1 1080p", "url": "acestream://fd53cfa7055fe458d4f5c0ff59a06cd43723be55", "group": "FORMULA 1" },{ "name": "DAZN F1 1080p", "url": "acestream://bcf9dc38f92e90a71b87bd54b3bac91b76d09a69", "group": "FORMULA 1" },{ "name": "LaLiga TV Hypermotion 720p", "url": "acestream://a4f072c9b614323ac1258a175f868a909ea3c8cd", "group": "HYPERMOTION" },{ "name": "LaLiga TV Hypermotion 1080p", "url": "acestream://87bb542f974b6b9e89d0f2e20ed6dc93426f4be0", "group": "HYPERMOTION" },{ "name": "LaLiga TV Hypermotion 2 1080p", "url": "acestream://709075831bf5c41ed0a20dfbd640aab6c28971f8", "group": "HYPERMOTION" },{ "name": "LaLiga TV Hypermotion 3 1080p", "url": "acestream://1fdb405a6942da0941266f24cdd1c71b11552f1f", "group": "HYPERMOTION" },{ "name": "DAZN LaLiga 720p", "url": "acestream://4e6d9cf7d177366045d33cd8311d8b1d7f4bed1f", "group": "LA LIGA" },{ "name": "DAZN LaLiga 1080p", "url": "acestream://4955867fad3bc92e5b4c36045699fc277800fb18", "group": "LA LIGA" },{ "name": "DAZN LaLiga 1080p", "url": "acestream://e2b8a4aba2f4ea3dd68992fcdb65c9e62d910b05", "group": "LA LIGA" },{ "name": "DAZN LaLiga 2 1080p", "url": "acestream://a231b2fa1f7754433efeb8bb8d69d7b9096dcba8", "group": "LA LIGA" },{ "name": "M+ LaLiga 720p", "url": "acestream://14b6cd8769cd485f2cffdca64be9698d9bfeac58", "group": "LA LIGA" },{ "name": "M+ LaLiga 1080p", "url": "acestream://4b528d10eaad747ddf52251206177573ee3e9f74", "group": "LA LIGA" },{ "name": "M+ LaLiga 1080p", "url": "acestream://00c9bc9c5d7d87680a5a6bed349edfa775a89947", "group": "LA LIGA" },{ "name": "M+ LaLiga 1080p", "url": "acestream://c9321006921967d6258df6945f1d598a5c0cbf1e", "group": "LA LIGA" },{ "name": "M+ LaLiga 2 720p", "url": "acestream://ad42faa399df66dcd62a1cbc9d1c99ed4512d3b8", "group": "LA LIGA" },{ "name": "M+ LaLiga 3 720p", "url": "acestream://382b14499e3d76e557d449d2e5bbc4e4bd63bd39", "group": "LA LIGA" },{ "name": "M+ LaLiga 4 1080p", "url": "acestream://2a6b1fd8a24b23747db1ea534a51457708523602", "group": "LA LIGA" },{ "name": "SKY Sports LaLiga SD", "url": "acestream://a9bddffdff085cdc18b34218d5dc1093b88e3c0a", "group": "LA LIGA" },{ "name": "M+ Liga de Campeones 720p", "url": "acestream://43249349740032bee068b5bbff7b078f642812db", "group": "LIGA DE CAMPEONES" },{ "name": "M+ Liga de Campeones 720p", "url": "acestream://b028202ff335911db3118bceac027df3e8ef6c32", "group": "LIGA DE CAMPEONES" },{ "name": "M+ Liga de Campeones 1080p", "url": "acestream://97df5b7824948972d041d8ca2a4d29c90b641bc9", "group": "LIGA DE CAMPEONES" },{ "name": "M+ Liga de Campeones 1080p", "url": "acestream://9db029dff6a9c637d1f670e78dbc1a479b9b406e", "group": "LIGA DE CAMPEONES" },{ "name": "M+ Liga de Campeones 1080p", "url": "acestream://2b51710cee513e8939785fa3e7980f32d4e0415f", "group": "LIGA DE CAMPEONES" },{ "name": "M+ Liga de Campeones 2 1080p", "url": "acestream://74ab4e4ec7e2da001f473ca40893b7307b8029c5", "group": "LIGA DE CAMPEONES" },{ "name": "M+ Liga de Campeones 2 1080p", "url": "acestream://bb26037a253866d341778181eff5c8637240d615", "group": "LIGA DE CAMPEONES" },{ "name": "M+ Liga de Campeones 3 720p", "url": "acestream://cfc371890bfb502737a26de5215e50929c52d0f9", "group": "LIGA DE CAMPEONES" },{ "name": "M+ Liga de Campeones 4 720p", "url": "acestream://5ba9368d80d2f87ac1c6d71df4e7e6e26e6911f2", "group": "LIGA DE CAMPEONES" },{ "name": "M+ Liga de Campeones 6 720p", "url": "acestream://bf10192dc72a98ee835a1b7ccac8b27737d02f25", "group": "LIGA DE CAMPEONES" },{ "name": "M+ Acción", "url": "acestream://fbf4ebe0dcd9d92d522fad129be22df4924ad39f", "group": "MOVISTAR" },{ "name": "M+ Acción", "url": "acestream://48753fd6987d721df0138b1f70e4dae530d35cd0", "group": "MOVISTAR" },{ "name": "M+ Acción", "url": "acestream://91f31550bcfcab2e3e1cb8d0af75777b862f6858", "group": "MOVISTAR" },{ "name": "M+ Acción", "url": "acestream://22e098168add080c8b75a68cb229999a55a5003d", "group": "MOVISTAR" },{ "name": "M+ Estrenos", "url": "acestream://49d66212748c67bd896fba703585997c6cae5460", "group": "MOVISTAR" },{ "name": "MOVISTAR PLUS 1080p", "url": "acestream://1ab443f5b4beb6d586f19e8b25b9f9646cf2ab78", "group": "MOVISTAR" },{ "name": "M+ Deportes 720p", "url": "acestream://2f3cfd199a49819cbd129689a840dc3d23ab93aa", "group": "MOVISTAR DEPORTES" },{ "name": "M+ Deportes 1080p", "url": "acestream://ebca4a63ce3bfda7b272964a1acc5227218184a4", "group": "MOVISTAR DEPORTES" },{ "name": "M+ Deportes 2 720p", "url": "acestream://bfa01c11c5c6b7a616a516de4f2c769a89d26b25", "group": "MOVISTAR DEPORTES" },{ "name": "M+ Deportes 2 1080p", "url": "acestream://f0ee7a2b43c1df5ea9e4fac5bf876d5bef4372b0", "group": "MOVISTAR DEPORTES" },{ "name": "M+ Deportes 2 1080p", "url": "acestream://890901fa742b19d8808cf49f19db2d3016437c56", "group": "MOVISTAR DEPORTES" },{ "name": "M+ Deportes 3 720p", "url": "acestream://2fd410c5d89e7a627cd3785685b7915b8e4bd534", "group": "MOVISTAR DEPORTES" },{ "name": "M+ Deportes 3 1080p", "url": "acestream://799c6b5ee1cf41af077d14e3f9c45a32697eb903", "group": "MOVISTAR DEPORTES" },{ "name": "M+ Deportes 5", "url": "acestream://7b361369a40046ad3011086f9d4ae2982fb4d5aa", "group": "MOVISTAR DEPORTES" },{ "name": "M+ Ellas Vamos", "url": "acestream://b2ee974d9cd40f2f251656cf5cb9a7a93ed05e97", "group": "MOVISTAR DEPORTES" },{ "name": "M+ Ellas Vamos", "url": "acestream://3040cfbef2d8170ff3909db6f21a6981d9ec74c8", "group": "MOVISTAR DEPORTES" },{ "name": "M+ Vamos 720p", "url": "acestream://0e5d8c9724fa9163f49096b70484e315251eb785", "group": "MOVISTAR DEPORTES" },{ "name": "M+ Vamos 1080p", "url": "acestream://476b6f6583517bd75c15c4663bf45fab7c8da9cf", "group": "MOVISTAR DEPORTES" },{ "name": "24H TV 720p", "url": "acestream://16598735f228c6dff542125d0e308150b50fc715", "group": "TDT" },{ "name": "CUATRO 1080p", "url": "acestream://72fe18250142433fe1d921fd76d99f3f1d2e2c00", "group": "TDT" },{ "name": "La Sexta 720p", "url": "acestream://bd38dba903a3d627fb053c9d907b1635a52fba3b", "group": "TDT" },{ "name": "Telecinco 1080p", "url": "acestream://3d376333ee90d6db3d413fc5764ef635882076f5", "group": "TDT" },{ "name": "TVE La 1", "url": "acestream://f379d93b71731f1bbd0845d1b1e4dc37b5b1fd92", "group": "TDT" },{ "name": "TVE La 1", "url": "acestream://1fddc49dd11ae7bb16f2b94648a9b4f0efc80349", "group": "TDT" },{ "name": "ACB EVENTO 01", "url": "acestream://53962d7fb865aff73b34a3afb2905cd492f60d75", "group": "DEPORTES" },{ "name": "ACB EVENTO 01 720p", "url": "acestream://23bee556c002d0726c1f0cac98a1901cff0a9239", "group": "DEPORTES" },{ "name": "ACB EVENTO 02", "url": "acestream://22b702984a0db43fd371c30e2df150b2336551cd", "group": "DEPORTES" },{ "name": "ACB EVENTO 03", "url": "acestream://02ec118ee4586d96df9115ffc486be9a499d00d9", "group": "DEPORTES" },{ "name": "M+ VAMOS 2 720p", "url": "acestream://4ee16a7f854219fa2974ef1468e6b2f8574189dd", "group": "DEPORTES" },{ "name": "M+ VAMOS 2 1080p", "url": "acestream://0cd11c1f51b84ebe9954496b3ef9b6aeccf7307c", "group": "DEPORTES" },{ "name": "RFEF TV 1080p", "url": "acestream://3fbc1b7dc316f19b77e7f7cfc775a0af67adcc7f", "group": "DEPORTES" },{ "name": "Teledeporte 720p", "url": "acestream://b0d1489c9f3239349665ad5ab423363f2b02e5ae", "group": "DEPORTES" },{ "name": "Teledeporte 1080p", "url": "acestream://3b50a1dca0977e3761d016edd79314ab797f74f6", "group": "DEPORTES" },{ "name": "Teledeporte 1080p", "url": "acestream://77cf022557c56cdf8d8115f50e61f846ad72ee05", "group": "DEPORTES" }];
-        const container = document.getElementById('linksList');
-        let currentGroup = '';
-        links.forEach(link => {
-            if (link.group !== currentGroup) {
-                currentGroup = link.group;
-                const h = document.createElement('div');
-                h.className = 'group-header';
-                h.textContent = currentGroup;
-                container.appendChild(h);
-            }
-            const d = document.createElement('div');
-            d.style.padding = '1rem 0';
-            d.style.borderBottom = '1px solid #334155';
-            d.innerHTML = '<div class="link-name">' + link.name + '</div><div class="link-url"><a href="' + link.url + '">' + link.url + '</a></div>';
-            container.appendChild(d);
-        });
-    </script>
-</body>
-</html>
+#EXTM3U url-tvg="https://github.com/davidmuma/EPG_dobleM/raw/refs/heads/master/EPG_dobleM.xml,https://raw.githubusercontent.com/davidmuma/EPG_dobleM/refs/heads/master/EPG_dobleM.xml,https://epgshare01.online/epgshare01/epg_ripper_NL1.xml.gz" refresh="3600"
+#EXTVLCOPT:network-caching=1000
+
+#EXTGRP: group-title="1RFEF" group-logo="https://static.wikia.nocookie.net/logopedia/images/d/df/Logo_Primera_RFEF_2021.png/revision/latest?cb=20230620215900&path-prefix=es"
+#EXTGRP: group-title="BUNDESLIGA" group-logo="https://upload.wikimedia.org/wikipedia/en/thumb/d/df/Bundesliga_logo_%282017%29.svg/180px-Bundesliga_logo_%282017%29.svg.png"
+#EXTGRP: group-title="DAZN" group-logo="https://upload.wikimedia.org/wikipedia/commons/thumb/d/d6/Dazn-logo.png/601px-Dazn-logo.png"
+#EXTGRP: group-title="DEPORTES" group-logo="https://i.ibb.co/6JGvLDWx/deportes-logo.png"
+#EXTGRP: group-title="EUROSPORT" group-logo="https://logos-world.net/wp-content/uploads/2022/05/Eurosport-Logo.png"
+#EXTGRP: group-title="EVENTOS" group-logo="https://i.ibb.co/Lh13t8zX/logo-eventos.png"
+#EXTGRP: group-title="FORMULA 1" group-logo="https://i.ibb.co/2Ndmtbp/f1.png"
+#EXTGRP: group-title="FUTBOL INT" group-logo="https://i.ibb.co/8nvKsJwL/logo-futbol-internacional.png"
+#EXTGRP: group-title="HYPERMOTION" group-logo="https://upload.wikimedia.org/wikipedia/commons/thumb/d/d9/LaLiga_Hypermotion_2023_Vertical_Logo.svg/2335px-LaLiga_Hypermotion_2023_Vertical_Logo.svg.png"
+#EXTGRP: group-title="LA LIGA" group-logo="https://i.ibb.co/sp6dD8h2/laliga-logo.png"
+#EXTGRP: group-title="LIGA DE CAMPEONES" group-logo="https://upload.wikimedia.org/wikipedia/commons/thumb/8/8f/Liga_de_Campeones_por_Movistar_Plus%2B_2023_Logo.svg/2560px-Liga_de_Campeones_por_Movistar_Plus%2B_2023_Logo.svg.png"
+#EXTGRP: group-title="LIGA ENDESA" group-logo="https://upload.wikimedia.org/wikipedia/commons/thumb/e/e7/Liga_Endesa_2019_logo.svg/1200px-Liga_Endesa_2019_logo.svg.png"
+#EXTGRP: group-title="MOTOR" group-logo="https://i.ibb.co/tTrS7848/logo-motor.png"
+#EXTGRP: group-title="MOVISTAR" group-logo="https://upload.wikimedia.org/wikipedia/commons/d/d9/Movistar%2B_Logo.png"
+#EXTGRP: group-title="MOVISTAR DEPORTES" group-logo="https://upload.wikimedia.org/wikipedia/commons/thumb/8/83/Deportes_por_Movistar_Plus%2B_2022_logo.svg/2560px-Deportes_por_Movistar_Plus%2B_2022_logo.svg.png"
+#EXTGRP: group-title="NBA" group-logo="https://i.ibb.co/Z1Gw82tQ/logo-nba.png"
+#EXTGRP: group-title="OTROS" group-logo="https://i.ibb.co/zVNFsy0F/logo-otros.png"
+#EXTGRP: group-title="SPORT TV" group-logo="https://i.ibb.co/WpVvrFT6/logo-sport-tv.png"
+#EXTGRP: group-title="TDT" group-logo="https://i.ibb.co/j9xn42jB/logo-tdt.png"
+#EXTGRP: group-title="TENNIS" group-logo="https://i.ibb.co/ynMKPMw2/logo-tennis.png"
+#EXTGRP: group-title="UFC" group-logo="https://pngimg.com/uploads/ufc/ufc_PNG64.png"
+
+#EXTINF:-1 group-title="DEPORTES" tvg-logo="https://i.ibb.co/gWMRpFB/vamos.png" tvg-name="M+ VAMOS 2 720p",M+ VAMOS 2 720p
+https://acexy.taimado.duckdns.org/ace/getstream?id=4ee16a7f854219fa2974ef1468e6b2f8574189dd
+#EXTINF:-1 group-title="MOVISTAR" tvg-logo="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQwQpf3bK8lcZBW6dNMJs5kZ2o-4mpMEdmUXQ&s" tvg-name="M+ Acción",M+ Acción
+https://acexy.taimado.duckdns.org/ace/getstream?id=fbf4ebe0dcd9d92d522fad129be22df4924ad39f
+#EXTINF:-1 group-title="DAZN" tvg-logo="https://i.ibb.co/Kz0GXSX/dazn2.png" tvg-name="DAZN 2",DAZN 2
+https://acexy.taimado.duckdns.org/ace/getstream?id=f12038c7fe603ed93fa9475d60692dd95bb7b17f
+#EXTINF:-1 group-title="FORMULA 1" tvg-logo="https://i.ibb.co/2Ndmtbp/f1.png" tvg-name="DAZN F1 720p",DAZN F1 720p
+https://acexy.taimado.duckdns.org/ace/getstream?id=88d7cdd80be237ae21314f7f1b6582991498e8ba
+#EXTINF:-1 group-title="LIGA DE CAMPEONES" tvg-logo="https://raw.githubusercontent.com/davidmuma/picons_dobleM/master/icon/M%2B%20Liga%20de%20Campeones%204.png" tvg-name="M+ Liga de Campeones 4 720p",M+ Liga de Campeones 4 720p
+https://acexy.taimado.duckdns.org/ace/getstream?id=5ba9368d80d2f87ac1c6d71df4e7e6e26e6911f2
+#EXTINF:-1 group-title="MOVISTAR DEPORTES" tvg-logo="https://i.ibb.co/CV4CLjz/deportes.png" tvg-name="M+ Deportes 1080p",M+ Deportes 1080p
+https://acexy.taimado.duckdns.org/ace/getstream?id=ebca4a63ce3bfda7b272964a1acc5227218184a4
+#EXTINF:-1 group-title="LIGA DE CAMPEONES" tvg-logo="https://raw.githubusercontent.com/davidmuma/picons_dobleM/master/icon/M%2B%20Liga%20de%20Campeones.png" tvg-name="M+ Liga de Campeones 1080p",M+ Liga de Campeones 1080p
+https://acexy.taimado.duckdns.org/ace/getstream?id=9db029dff6a9c637d1f670e78dbc1a479b9b406e
+#EXTINF:-1 group-title="FORMULA 1" tvg-logo="https://i.ibb.co/2Ndmtbp/f1.png" tvg-name="DAZN F1 720p",DAZN F1 720p
+https://acexy.taimado.duckdns.org/ace/getstream?id=ed6188dcbb491efeb2092c1a6199226c27f61727
+#EXTINF:-1 group-title="TDT" tvg-logo="https://i.ibb.co/Vf2GT70/la1.png" tvg-name="TVE La 1",TVE La 1
+https://acexy.taimado.duckdns.org/ace/getstream?id=f379d93b71731f1bbd0845d1b1e4dc37b5b1fd92
+#EXTINF:-1 group-title="DEPORTES" tvg-logo="https://static.wikia.nocookie.net/logopedia/images/d/df/Logo_Primera_RFEF_2021.png/revision/latest?cb=20230620215900&path-prefix=es" tvg-name="Teledeporte 720p",Teledeporte 720p
+https://acexy.taimado.duckdns.org/ace/getstream?id=b0d1489c9f3239349665ad5ab423363f2b02e5ae
+#EXTINF:-1 group-title="TDT" tvg-logo="https://i.ibb.co/Vf2GT70/la1.png" tvg-name="CUATRO 1080p",CUATRO 1080p
+https://acexy.taimado.duckdns.org/ace/getstream?id=72fe18250142433fe1d921fd76d99f3f1d2e2c00
+#EXTINF:-1 group-title="LA LIGA" tvg-logo="https://raw.githubusercontent.com/tv-logo/tv-logos/refs/heads/main/countries/spain/laliga-tv-4-por-movistar-plus-es.png" tvg-name="M+ LaLiga 4 1080p",M+ LaLiga 4 1080p
+https://acexy.taimado.duckdns.org/ace/getstream?id=2a6b1fd8a24b23747db1ea534a51457708523602
+#EXTINF:-1 group-title="DEPORTES" tvg-logo="https://static.wikia.nocookie.net/logopedia/images/d/df/Logo_Primera_RFEF_2021.png/revision/latest?cb=20230620215900&path-prefix=es" tvg-name="RFEF TV 1080p",RFEF TV 1080p
+https://acexy.taimado.duckdns.org/ace/getstream?id=3fbc1b7dc316f19b77e7f7cfc775a0af67adcc7f
+#EXTINF:-1 group-title="DAZN" tvg-logo="https://i.ibb.co/FVzKq1y/dazn1.png" tvg-name="DAZN 1",DAZN 1
+https://acexy.taimado.duckdns.org/ace/getstream?id=9afc89481b721ce6c326c85e47148676077b8e62
+#EXTINF:-1 group-title="MOVISTAR DEPORTES" tvg-logo="https://i.ibb.co/q95fBKV/deportes2.png" tvg-name="M+ Deportes 2 720p",M+ Deportes 2 720p
+https://acexy.taimado.duckdns.org/ace/getstream?id=bfa01c11c5c6b7a616a516de4f2c769a89d26b25
+#EXTINF:-1 group-title="MOVISTAR DEPORTES" tvg-logo="https://i.ibb.co/q95fBKV/deportes2.png" tvg-name="M+ Deportes 2 1080p",M+ Deportes 2 1080p
+https://acexy.taimado.duckdns.org/ace/getstream?id=890901fa742b19d8808cf49f19db2d3016437c56
+#EXTINF:-1 group-title="TDT" tvg-logo="https://i.ibb.co/SX1jhBzy/lasexta.png" tvg-name="La Sexta 720p",La Sexta 720p
+https://acexy.taimado.duckdns.org/ace/getstream?id=bd38dba903a3d627fb053c9d907b1635a52fba3b
+#EXTINF:-1 group-title="DEPORTES" tvg-logo="https://upload.wikimedia.org/wikipedia/commons/e/e7/Liga_Endesa_2019_logo.svg" tvg-name="ACB EVENTO 01 720p",ACB EVENTO 01 720p
+https://acexy.taimado.duckdns.org/ace/getstream?id=23bee556c002d0726c1f0cac98a1901cff0a9239
+#EXTINF:-1 group-title="LIGA DE CAMPEONES" tvg-logo="https://raw.githubusercontent.com/davidmuma/picons_dobleM/master/icon/M%2B%20Liga%20de%20Campeones%205.png" tvg-name="M+ Liga de Campeones 6 720p",M+ Liga de Campeones 6 720p
+https://acexy.taimado.duckdns.org/ace/getstream?id=bf10192dc72a98ee835a1b7ccac8b27737d02f25
+#EXTINF:-1 group-title="HYPERMOTION" tvg-logo="https://i.ibb.co/826y2Yv/Hypermotion3.png" tvg-name="LaLiga TV Hypermotion 3 1080p",LaLiga TV Hypermotion 3 1080p
+https://acexy.taimado.duckdns.org/ace/getstream?id=1fdb405a6942da0941266f24cdd1c71b11552f1f
+#EXTINF:-1 group-title="FORMULA 1" tvg-logo="https://i.ibb.co/2Ndmtbp/f1.png" tvg-name="DAZN F1 1080p",DAZN F1 1080p
+https://acexy.taimado.duckdns.org/ace/getstream?id=fd53cfa7055fe458d4f5c0ff59a06cd43723be55
+#EXTINF:-1 group-title="HYPERMOTION" tvg-logo="https://i.ibb.co/CBdGc9f/hypermotion1.png" tvg-name="LaLiga TV Hypermotion 720p",LaLiga TV Hypermotion 720p
+https://acexy.taimado.duckdns.org/ace/getstream?id=a4f072c9b614323ac1258a175f868a909ea3c8cd
+#EXTINF:-1 group-title="HYPERMOTION" tvg-logo="https://i.ibb.co/8K0VrQV/hypermotion2.png" tvg-name="LaLiga TV Hypermotion 2 1080p",LaLiga TV Hypermotion 2 1080p
+https://acexy.taimado.duckdns.org/ace/getstream?id=709075831bf5c41ed0a20dfbd640aab6c28971f8
+#EXTINF:-1 group-title="TDT" tvg-logo="https://i.ibb.co/81wJ3GH/telecinco.png" tvg-name="Telecinco 1080p",Telecinco 1080p
+https://acexy.taimado.duckdns.org/ace/getstream?id=3d376333ee90d6db3d413fc5764ef635882076f5
+#EXTINF:-1 group-title="MOVISTAR" tvg-logo="https://i.ibb.co/hFYPWbpJ/plus.png" tvg-name="MOVISTAR PLUS 1080p",MOVISTAR PLUS 1080p
+https://acexy.taimado.duckdns.org/ace/getstream?id=1ab443f5b4beb6d586f19e8b25b9f9646cf2ab78
+#EXTINF:-1 group-title="MOVISTAR DEPORTES" tvg-logo="https://i.ibb.co/rx9hnHz/ellas.png" tvg-name="M+ Ellas Vamos",M+ Ellas Vamos
+https://acexy.taimado.duckdns.org/ace/getstream?id=3040cfbef2d8170ff3909db6f21a6981d9ec74c8
+#EXTINF:-1 group-title="MOVISTAR DEPORTES" tvg-logo="https://raw.githubusercontent.com/tv-logo/tv-logos/refs/heads/main/countries/spain/deportes-5-por-movistar-plus-es.png" tvg-name="M+ Deportes 5",M+ Deportes 5
+https://acexy.taimado.duckdns.org/ace/getstream?id=7b361369a40046ad3011086f9d4ae2982fb4d5aa
+#EXTINF:-1 group-title="EUROSPORT" tvg-logo="https://i.ibb.co/M6h4Qyd/euro2.png" tvg-name="Eurosport 2 720p",Eurosport 2 720p
+https://acexy.taimado.duckdns.org/ace/getstream?id=5c910d614894635153a7d42de98cc2e4a958a53f
+#EXTINF:-1 group-title="LA LIGA" tvg-logo="https://i.ibb.co/yfV1Q8n/liga.png" tvg-name="M+ LaLiga 1080p",M+ LaLiga 1080p
+https://acexy.taimado.duckdns.org/ace/getstream?id=4b528d10eaad747ddf52251206177573ee3e9f74
+#EXTINF:-1 group-title="EUROSPORT" tvg-logo="https://i.ibb.co/r2Yd7xD/euro1.png" tvg-name="Eurosport 1 720p",Eurosport 1 720p
+https://acexy.taimado.duckdns.org/ace/getstream?id=a7b42f9d65636d1b1d9316d3e91ebe12b192658c
+#EXTINF:-1 group-title="LA LIGA" tvg-logo="https://raw.githubusercontent.com/tv-logo/tv-logos/refs/heads/main/countries/spain/dazn-laliga-es.png" tvg-name="DAZN LaLiga 1080p",DAZN LaLiga 1080p
+https://acexy.taimado.duckdns.org/ace/getstream?id=e2b8a4aba2f4ea3dd68992fcdb65c9e62d910b05
+#EXTINF:-1 group-title="LIGA DE CAMPEONES" tvg-logo="https://raw.githubusercontent.com/davidmuma/picons_dobleM/master/icon/M%2B%20Liga%20de%20Campeones.png" tvg-name="M+ Liga de Campeones 1080p",M+ Liga de Campeones 1080p
+https://acexy.taimado.duckdns.org/ace/getstream?id=2b51710cee513e8939785fa3e7980f32d4e0415f
+#EXTINF:-1 group-title="FORMULA 1" tvg-logo="https://i.ibb.co/2Ndmtbp/f1.png" tvg-name="DAZN F1 1080p",DAZN F1 1080p
+https://acexy.taimado.duckdns.org/ace/getstream?id=b08e158ea3f5c72084f5ff8e3c30ca2e4d1ff6d1
+#EXTINF:-1 group-title="DEPORTES" tvg-logo="https://i.ibb.co/gWMRpFB/vamos.png" tvg-name="M+ VAMOS 2 1080p",M+ VAMOS 2 1080p
+https://acexy.taimado.duckdns.org/ace/getstream?id=0cd11c1f51b84ebe9954496b3ef9b6aeccf7307c
+#EXTINF:-1 group-title="DEPORTES" tvg-logo="https://upload.wikimedia.org/wikipedia/commons/e/e7/Liga_Endesa_2019_logo.svg" tvg-name="ACB EVENTO 01",ACB EVENTO 01
+https://acexy.taimado.duckdns.org/ace/getstream?id=53962d7fb865aff73b34a3afb2905cd492f60d75
+#EXTINF:-1 group-title="MOVISTAR DEPORTES" tvg-logo="https://i.ibb.co/jDg5qWD/deportes3.png" tvg-name="M+ Deportes 3 720p",M+ Deportes 3 720p
+https://acexy.taimado.duckdns.org/ace/getstream?id=2fd410c5d89e7a627cd3785685b7915b8e4bd534
+#EXTINF:-1 group-title="DEPORTES" tvg-logo="https://static.wikia.nocookie.net/logopedia/images/d/df/Logo_Primera_RFEF_2021.png/revision/latest?cb=20230620215900&path-prefix=es" tvg-name="Teledeporte 1080p",Teledeporte 1080p
+https://acexy.taimado.duckdns.org/ace/getstream?id=3b50a1dca0977e3761d016edd79314ab797f74f6
+#EXTINF:-1 group-title="LA LIGA" tvg-logo="https://raw.githubusercontent.com/tv-logo/tv-logos/refs/heads/main/countries/spain/dazn-laliga-es.png" tvg-name="DAZN LaLiga 1080p",DAZN LaLiga 1080p
+https://acexy.taimado.duckdns.org/ace/getstream?id=4955867fad3bc92e5b4c36045699fc277800fb18
+#EXTINF:-1 group-title="MOVISTAR DEPORTES" tvg-logo="https://i.ibb.co/q95fBKV/deportes2.png" tvg-name="M+ Deportes 2 1080p",M+ Deportes 2 1080p
+https://acexy.taimado.duckdns.org/ace/getstream?id=f0ee7a2b43c1df5ea9e4fac5bf876d5bef4372b0
+#EXTINF:-1 group-title="LA LIGA" tvg-logo="https://i.ibb.co/yfV1Q8n/liga.png" tvg-name="M+ LaLiga 1080p",M+ LaLiga 1080p
+https://acexy.taimado.duckdns.org/ace/getstream?id=c9321006921967d6258df6945f1d598a5c0cbf1e
+#EXTINF:-1 group-title="TDT" tvg-logo="https://i.ibb.co/Vf2GT70/la1.png" tvg-name="TVE La 1",TVE La 1
+https://acexy.taimado.duckdns.org/ace/getstream?id=1fddc49dd11ae7bb16f2b94648a9b4f0efc80349
+#EXTINF:-1 group-title="DEPORTES" tvg-logo="https://upload.wikimedia.org/wikipedia/commons/e/e7/Liga_Endesa_2019_logo.svg" tvg-name="ACB EVENTO 02",ACB EVENTO 02
+https://acexy.taimado.duckdns.org/ace/getstream?id=22b702984a0db43fd371c30e2df150b2336551cd
+#EXTINF:-1 group-title="LA LIGA" tvg-logo="https://i.ibb.co/yfV1Q8n/liga.png" tvg-name="M+ LaLiga 720p",M+ LaLiga 720p
+https://acexy.taimado.duckdns.org/ace/getstream?id=14b6cd8769cd485f2cffdca64be9698d9bfeac58
+#EXTINF:-1 group-title="MOVISTAR" tvg-logo="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQwQpf3bK8lcZBW6dNMJs5kZ2o-4mpMEdmUXQ&s" tvg-name="M+ Acción",M+ Acción
+https://acexy.taimado.duckdns.org/ace/getstream?id=22e098168add080c8b75a68cb229999a55a5003d
+#EXTINF:-1 group-title="HYPERMOTION" tvg-logo="https://i.ibb.co/CBdGc9f/hypermotion1.png" tvg-name="LaLiga TV Hypermotion 1080p",LaLiga TV Hypermotion 1080p
+https://acexy.taimado.duckdns.org/ace/getstream?id=87bb542f974b6b9e89d0f2e20ed6dc93426f4be0
+#EXTINF:-1 group-title="EUROSPORT" tvg-logo="https://i.ibb.co/r2Yd7xD/euro1.png" tvg-name="Eurosport 1 1080p",Eurosport 1 1080p
+https://acexy.taimado.duckdns.org/ace/getstream?id=0db68ab752b50e6bb257eef22d102c1d29cd92ea
+#EXTINF:-1 group-title="TDT" tvg-logo="https://upload.wikimedia.org/wikipedia/commons/4/4c/24h_2026.svg" tvg-name="24H TV 720p",24H TV 720p
+https://acexy.taimado.duckdns.org/ace/getstream?id=16598735f228c6dff542125d0e308150b50fc715
+#EXTINF:-1 group-title="LA LIGA" tvg-logo="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSKBCa6SydXxbOh3qbRLTAWW6FOnRo5nXa9kw&s" tvg-name="SKY Sports LaLiga SD",SKY Sports LaLiga SD
+https://acexy.taimado.duckdns.org/ace/getstream?id=a9bddffdff085cdc18b34218d5dc1093b88e3c0a
+#EXTINF:-1 group-title="EUROSPORT" tvg-logo="https://i.ibb.co/M6h4Qyd/euro2.png" tvg-name="Eurosport 2 1080p",Eurosport 2 1080p
+https://acexy.taimado.duckdns.org/ace/getstream?id=24f940fef7e270b6b3ae5d9dc713a80c8345cfba
+#EXTINF:-1 group-title="LIGA DE CAMPEONES" tvg-logo="https://raw.githubusercontent.com/davidmuma/picons_dobleM/master/icon/M%2B%20Liga%20de%20Campeones.png" tvg-name="M+ Liga de Campeones 1080p",M+ Liga de Campeones 1080p
+https://acexy.taimado.duckdns.org/ace/getstream?id=97df5b7824948972d041d8ca2a4d29c90b641bc9
+#EXTINF:-1 group-title="DEPORTES" tvg-logo="https://upload.wikimedia.org/wikipedia/commons/e/e7/Liga_Endesa_2019_logo.svg" tvg-name="ACB EVENTO 03",ACB EVENTO 03
+https://acexy.taimado.duckdns.org/ace/getstream?id=02ec118ee4586d96df9115ffc486be9a499d00d9
+#EXTINF:-1 group-title="LA LIGA" tvg-logo="https://i.ibb.co/Tc97zSb/liga2.png" tvg-name="M+ LaLiga 2 720p",M+ LaLiga 2 720p
+https://acexy.taimado.duckdns.org/ace/getstream?id=ad42faa399df66dcd62a1cbc9d1c99ed4512d3b8
+#EXTINF:-1 group-title="LA LIGA" tvg-logo="https://i.ibb.co/BZF0xG9/liga3.png" tvg-name="M+ LaLiga 3 720p",M+ LaLiga 3 720p
+https://acexy.taimado.duckdns.org/ace/getstream?id=382b14499e3d76e557d449d2e5bbc4e4bd63bd39
+#EXTINF:-1 group-title="MOVISTAR" tvg-logo="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQwQpf3bK8lcZBW6dNMJs5kZ2o-4mpMEdmUXQ&s" tvg-name="M+ Acción",M+ Acción
+https://acexy.taimado.duckdns.org/ace/getstream?id=91f31550bcfcab2e3e1cb8d0af75777b862f6858
+#EXTINF:-1 group-title="DAZN" tvg-logo="https://i.ibb.co/FVzKq1y/dazn1.png" tvg-name="DAZN 1",DAZN 1
+https://acexy.taimado.duckdns.org/ace/getstream?id=7ba1f321f4d0791b7ebd42f41a07c1cd1479e784
+#EXTINF:-1 group-title="LIGA DE CAMPEONES" tvg-logo="https://raw.githubusercontent.com/davidmuma/picons_dobleM/master/icon/M%2B%20Liga%20de%20Campeones.png" tvg-name="M+ Liga de Campeones 720p",M+ Liga de Campeones 720p
+https://acexy.taimado.duckdns.org/ace/getstream?id=43249349740032bee068b5bbff7b078f642812db
+#EXTINF:-1 group-title="LIGA DE CAMPEONES" tvg-logo="https://raw.githubusercontent.com/davidmuma/picons_dobleM/master/icon/M%2B%20Liga%20de%20Campeones%202.png" tvg-name="M+ Liga de Campeones 2 1080p",M+ Liga de Campeones 2 1080p
+https://acexy.taimado.duckdns.org/ace/getstream?id=bb26037a253866d341778181eff5c8637240d615
+#EXTINF:-1 group-title="MOVISTAR DEPORTES" tvg-logo="https://i.ibb.co/gWMRpFB/vamos.png" tvg-name="M+ Vamos 720p",M+ Vamos 720p
+https://acexy.taimado.duckdns.org/ace/getstream?id=0e5d8c9724fa9163f49096b70484e315251eb785
+#EXTINF:-1 group-title="LIGA DE CAMPEONES" tvg-logo="https://raw.githubusercontent.com/davidmuma/picons_dobleM/master/icon/M%2B%20Liga%20de%20Campeones%202.png" tvg-name="M+ Liga de Campeones 2 1080p",M+ Liga de Campeones 2 1080p
+https://acexy.taimado.duckdns.org/ace/getstream?id=74ab4e4ec7e2da001f473ca40893b7307b8029c5
+#EXTINF:-1 group-title="LIGA DE CAMPEONES" tvg-logo="https://raw.githubusercontent.com/davidmuma/picons_dobleM/master/icon/M%2B%20Liga%20de%20Campeones%203.png" tvg-name="M+ Liga de Campeones 3 720p",M+ Liga de Campeones 3 720p
+https://acexy.taimado.duckdns.org/ace/getstream?id=cfc371890bfb502737a26de5215e50929c52d0f9
+#EXTINF:-1 group-title="LIGA DE CAMPEONES" tvg-logo="https://raw.githubusercontent.com/davidmuma/picons_dobleM/master/icon/M%2B%20Liga%20de%20Campeones.png" tvg-name="M+ Liga de Campeones 720p",M+ Liga de Campeones 720p
+https://acexy.taimado.duckdns.org/ace/getstream?id=b028202ff335911db3118bceac027df3e8ef6c32
+#EXTINF:-1 group-title="FORMULA 1" tvg-logo="https://i.ibb.co/2Ndmtbp/f1.png" tvg-name="DAZN F1 1080p",DAZN F1 1080p
+https://acexy.taimado.duckdns.org/ace/getstream?id=bcf9dc38f92e90a71b87bd54b3bac91b76d09a69
+#EXTINF:-1 group-title="DEPORTES" tvg-logo="https://static.wikia.nocookie.net/logopedia/images/d/df/Logo_Primera_RFEF_2021.png/revision/latest?cb=20230620215900&path-prefix=es" tvg-name="Teledeporte 1080p",Teledeporte 1080p
+https://acexy.taimado.duckdns.org/ace/getstream?id=77cf022557c56cdf8d8115f50e61f846ad72ee05
+#EXTINF:-1 group-title="MOVISTAR" tvg-logo="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQwQpf3bK8lcZBW6dNMJs5kZ2o-4mpMEdmUXQ&s" tvg-name="M+ Acción",M+ Acción
+https://acexy.taimado.duckdns.org/ace/getstream?id=48753fd6987d721df0138b1f70e4dae530d35cd0
+#EXTINF:-1 group-title="LA LIGA" tvg-logo="https://i.ibb.co/yfV1Q8n/liga.png" tvg-name="M+ LaLiga 1080p",M+ LaLiga 1080p
+https://acexy.taimado.duckdns.org/ace/getstream?id=00c9bc9c5d7d87680a5a6bed349edfa775a89947
+#EXTINF:-1 group-title="MOVISTAR DEPORTES" tvg-logo="https://i.ibb.co/rx9hnHz/ellas.png" tvg-name="M+ Ellas Vamos",M+ Ellas Vamos
+https://acexy.taimado.duckdns.org/ace/getstream?id=b2ee974d9cd40f2f251656cf5cb9a7a93ed05e97
+#EXTINF:-1 group-title="MOVISTAR DEPORTES" tvg-logo="https://i.ibb.co/gWMRpFB/vamos.png" tvg-name="M+ Vamos 1080p",M+ Vamos 1080p
+https://acexy.taimado.duckdns.org/ace/getstream?id=476b6f6583517bd75c15c4663bf45fab7c8da9cf
