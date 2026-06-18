@@ -309,6 +309,8 @@ https://acexy.taimado.duckdns.org/ace/getstream?id=af393f93814d03160d48d27307595
 https://acexy.taimado.duckdns.org/ace/getstream?id=7f8b4f57bf234510d3f607492508d68167d4b0ab
 #EXTINF:-1 tvg-logo="https://i.ibb.co/CV4CLjz/deportes.png" tvg-id="M+ Deportes HD" group-title="MOVISTAR DEPORTES", MOVISTAR DEPORTES 662f --> ELCANO
 https://acexy.taimado.duckdns.org/ace/getstream?id=cf5327fe9c962a29dfff3868f4349ff2b0b4662f
+#EXTINF:-1 tvg-logo="https://i.ibb.co/CV4CLjz/deportes.png" tvg-id="M+ Deportes HD" group-title="MOVISTAR DEPORTES", MOVISTAR DEPORTES e18a --> ELCANO
+https://acexy.taimado.duckdns.org/ace/getstream?id=b35b3eb8e22365bf3469efd6d1f3b82618a6e18a
 #EXTINF:-1 tvg-logo="https://i.ibb.co/CV4CLjz/deportes.png" tvg-id="M+ Deportes HD" group-title="MOVISTAR DEPORTES", MOVISTAR DEPORTES ee05 --> ELCANO
 https://acexy.taimado.duckdns.org/ace/getstream?id=77cf022557c56cdf8d8115f50e61f846ad72ee05
 #EXTINF:-1 tvg-logo="https://i.ibb.co/CV4CLjz/deportes.png" tvg-id="M+ Deportes HD" group-title="MOVISTAR DEPORTES", MOVISTAR DEPORTES 74f6 --> ELCANO
@@ -451,10 +453,10 @@ https://acexy.taimado.duckdns.org/ace/getstream?id=e1c2c2a74a3688066526e5ff212e1
 https://acexy.taimado.duckdns.org/ace/getstream?id=8d66979e705a8b532b9243bbc0862c0f1c734ef0
 #EXTINF:-1 tvg-logo="https://e1.pngegg.com/pngimages/696/957/png-clipart-disney-channel-logo.png" tvg-id="Disney Channel" group-title="TDT", Disney Channel 86cc --> NEW ERA III
 https://acexy.taimado.duckdns.org/ace/getstream?id=94f87e54d3ad4660c800d2ec46b14ba29e0186cc
-#EXTINF:-1 tvg-logo="https://i.ibb.co/Vf2GT70/la1.png" tvg-id="La 1 HD" group-title="TDT", LA 1 1102 --> ELCANO
-https://acexy.taimado.duckdns.org/ace/getstream?id=979d3b873871a5a9a56d3eb481ca77b707e01102
 #EXTINF:-1 tvg-logo="https://i.ibb.co/Vf2GT70/la1.png" tvg-id="La 1 HD" group-title="TDT", LA 1 cc6c --> ELCANO
 https://acexy.taimado.duckdns.org/ace/getstream?id=379192c3ee5a15570e2c685179bc53cb7133cc6c
+#EXTINF:-1 tvg-logo="https://i.ibb.co/Vf2GT70/la1.png" tvg-id="La 1 HD" group-title="TDT", LA 1 1102 --> ELCANO
+https://acexy.taimado.duckdns.org/ace/getstream?id=979d3b873871a5a9a56d3eb481ca77b707e01102
 #EXTINF:-1 tvg-logo="https://i.ibb.co/YFzzqWw5/la2.png" tvg-id="La 2" group-title="TDT", LA 2 FHD c2ed --> NEW ERA
 https://acexy.taimado.duckdns.org/ace/getstream?id=9934906503661142f97a044ae1509a294057c2ed
 #EXTINF:-1 tvg-logo="https://raw.githubusercontent.com/davidmuma/picons_dobleM/master/icon/Tennis%20Channel.png" tvg-id="Tennis Channel" group-title="TENNIS", TENNIS CHANNEL 64eb --> ELCANO
@@ -463,12 +465,8 @@ https://acexy.taimado.duckdns.org/ace/getstream?id=43c549e5781f5a923b76f8f29cde1
 https://acexy.taimado.duckdns.org/ace/getstream?id=8091334c82e8720fc6aa05ff0bd6d343c5bfecbf
 #EXTINF:-1 tvg-logo="" tvg-id="" group-title="OTROS", CALCIO EVENTOS FHD 7955 --> NEW ERA
 https://acexy.taimado.duckdns.org/ace/getstream?id=1e045b7e16a5c2c3e5a8c0c0176efa26b63d7955
-#EXTINF:-1 tvg-logo="" tvg-id="" group-title="OTROS", CANAL 5 MX FHDp ** 0fc9 --> ELCANO
-https://acexy.taimado.duckdns.org/ace/getstream?id=2f632f8996f1dc4ac00fe4e08e4f9ac90ea80fc9
 #EXTINF:-1 tvg-logo="" tvg-id="" group-title="OTROS", Canal+ Sport 3 PL 0672 --> NEW LOOP
 https://acexy.taimado.duckdns.org/ace/getstream?id=b3f2b59e44fe70f45dca643107f88b6fcff80672
-#EXTINF:-1 tvg-logo="" tvg-id="" group-title="OTROS", CAZE TV ** 37bb --> ELCANO
-https://acexy.taimado.duckdns.org/ace/getstream?id=0544b00f3f9268a7a93b06467b3c17a2be7c37bb
 #EXTINF:-1 tvg-logo="" tvg-id="" group-title="OTROS", DAZN Baloncesto FHDp ** cf07 --> ELCANO
 https://acexy.taimado.duckdns.org/ace/getstream?id=6fbd92735502bdebbf1ea58f4298e49759c0cf07
 #EXTINF:-1 tvg-logo="" tvg-id="" group-title="OTROS", DAZN Baloncesto SDp ** 9fa5 --> ELCANO
@@ -491,34 +489,18 @@ https://acexy.taimado.duckdns.org/ace/getstream?id=e8135d829180a89ebd55ecf20c995
 https://acexy.taimado.duckdns.org/ace/getstream?id=ccfde4bc75d14c79dd09af72434568a0e732d507
 #EXTINF:-1 tvg-logo="" tvg-id="" group-title="OTROS", Dazn Mundial 1 ** 9b36 --> ELCANO
 https://acexy.taimado.duckdns.org/ace/getstream?id=414222dc7b69a626f29eb964450dae44b3bc9b36
-#EXTINF:-1 tvg-logo="" tvg-id="" group-title="OTROS", Dazn Mundial 2 * 5ac7 --> ELCANO
-https://acexy.taimado.duckdns.org/ace/getstream?id=dac18df259f44258d81aa8f31cb343bb837f5ac7
-#EXTINF:-1 tvg-logo="" tvg-id="" group-title="OTROS", Dazn Mundial 2 ** 3989 --> ELCANO
-https://acexy.taimado.duckdns.org/ace/getstream?id=63b1933154919d116f08e33ffcb31a23f9483989
-#EXTINF:-1 tvg-logo="" tvg-id="" group-title="OTROS", Dazn Mundial 3 * a415 --> ELCANO
-https://acexy.taimado.duckdns.org/ace/getstream?id=f28f558a7699237cb4ec1e0075db4073ffc3a415
-#EXTINF:-1 tvg-logo="" tvg-id="" group-title="OTROS", Dazn Mundial 4 * 31bb --> ELCANO
-https://acexy.taimado.duckdns.org/ace/getstream?id=584e20154750a15d14cb59953bb9cdd923c331bb
-#EXTINF:-1 tvg-logo="" tvg-id="" group-title="OTROS", Dazn Mundial 4 ** a29c --> ELCANO
-https://acexy.taimado.duckdns.org/ace/getstream?id=aab0be9632ef2f53e99f2e596a8e6a30ed34a29c
 #EXTINF:-1 tvg-logo="" tvg-id="" group-title="OTROS", Direct Sport 2 FHDp ** d061 --> ELCANO
 https://acexy.taimado.duckdns.org/ace/getstream?id=0d780c1fb5fdf2121d9544f1a6892cb1053dd061
 #EXTINF:-1 tvg-logo="" tvg-id="" group-title="OTROS", Direct Sport+ FHDp * f647 --> ELCANO
 https://acexy.taimado.duckdns.org/ace/getstream?id=e24b30556ad82c782bbfa003b384b85ecea8f647
-#EXTINF:-1 tvg-logo="" tvg-id="" group-title="OTROS", Direct Sport FHDp ** bd1f --> ELCANO
-https://acexy.taimado.duckdns.org/ace/getstream?id=79e6e01eb3db42e3da2428895181c0d32e4abd1f
 #EXTINF:-1 tvg-logo="" tvg-id="" group-title="OTROS", Disney Junior FHDp * 86d1 --> ELCANO
 https://acexy.taimado.duckdns.org/ace/getstream?id=a722bc25dfa16d1112fde83cb79501b9756586d1
-#EXTINF:-1 tvg-logo="" tvg-id="" group-title="OTROS", Esport3 SDp * f23c --> ELCANO
-https://acexy.taimado.duckdns.org/ace/getstream?id=739792a3225e5eb3056f4faa7b1137c7f161f23c
 #EXTINF:-1 tvg-logo="" tvg-id="" group-title="OTROS", Esport3 SDp ** 42e3 --> ELCANO
 https://acexy.taimado.duckdns.org/ace/getstream?id=ed6524f8f73c30cf102fde66f2cb520f4b5842e3
-#EXTINF:-1 tvg-logo="" tvg-id="" group-title="OTROS", FIFA World Cup 1 ** d94b --> ELCANO
-https://acexy.taimado.duckdns.org/ace/getstream?id=e8670925c3bfd0ceafa54192772a6b8a482bd94b
 #EXTINF:-1 tvg-logo="" tvg-id="" group-title="OTROS", Fox Sport 4K ** 7b0a --> ELCANO
 https://acexy.taimado.duckdns.org/ace/getstream?id=d389b0c2474bb1ab827413d87823451ee4c07b0a
-#EXTINF:-1 tvg-logo="" tvg-id="" group-title="OTROS", Fox Sport FHDp ** 4ce9 --> ELCANO
-https://acexy.taimado.duckdns.org/ace/getstream?id=91826b587ffc2a94dcb104928fca7a33ae6b4ce9
+#EXTINF:-1 tvg-logo="" tvg-id="" group-title="OTROS", M+ Golf SDp * ddd6 --> ELCANO
+https://acexy.taimado.duckdns.org/ace/getstream?id=f60535a458b3c114283e2f433379144345beddd6
 #EXTINF:-1 tvg-logo="" tvg-id="" group-title="OTROS", Magenta Sport 1 HD (DE) 5072 --> SPORT TV
 https://acexy.taimado.duckdns.org/ace/getstream?id=501141c649a2b78c4965cbf3257224181cc55072
 #EXTINF:-1 tvg-logo="" tvg-id="" group-title="OTROS", Magenta Sport 2 HD (DE) a9ab --> SPORT TV
