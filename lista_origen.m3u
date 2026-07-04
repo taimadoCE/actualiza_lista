@@ -373,10 +373,10 @@ http://127.0.0.1:6878/ace/getstream?id=edd06f11e1cef292a1d795e15207ef2f580e298c
 http://127.0.0.1:6878/ace/getstream?id=6e212a916c83638268047dd2757c95b14f7d25a3
 #EXTINF:-1 tvg-logo="https://i.ibb.co/q95fBKV/deportes2.png" tvg-id="M+ Deportes 2 HD" group-title="MOVISTAR DEPORTES", MOVISTAR DEPORTES 2 da90 --> ELCANO
 http://127.0.0.1:6878/ace/getstream?id=6b15368775693c33c49fab02e7900c1976a5da90
-#EXTINF:-1 tvg-logo="https://i.ibb.co/q95fBKV/deportes2.png" tvg-id="M+ Deportes 2 HD" group-title="MOVISTAR DEPORTES", MOVISTAR DEPORTES 2 2191 --> ELCANO
-http://127.0.0.1:6878/ace/getstream?id=8cd8fd69c6755ec452e9e74b33a0d1a653452191
 #EXTINF:-1 tvg-logo="https://i.ibb.co/q95fBKV/deportes2.png" tvg-id="M+ Deportes 2 HD" group-title="MOVISTAR DEPORTES", MOVISTAR DEPORTES 2 9eed --> ELCANO
 http://127.0.0.1:6878/ace/getstream?id=3ee6a0b0e3cacea68107f61bf398f651d8159eed
+#EXTINF:-1 tvg-logo="https://i.ibb.co/q95fBKV/deportes2.png" tvg-id="M+ Deportes 2 HD" group-title="MOVISTAR DEPORTES", MOVISTAR DEPORTES 2 2191 --> ELCANO
+http://127.0.0.1:6878/ace/getstream?id=8cd8fd69c6755ec452e9e74b33a0d1a653452191
 #EXTINF:-1 tvg-logo="https://i.ibb.co/q95fBKV/deportes2.png" tvg-id="M+ Deportes 2 HD" group-title="MOVISTAR DEPORTES", MOVISTAR DEPORTES 2 HD 52b5 --> SPORT TV
 http://127.0.0.1:6878/ace/getstream?id=3afe1af18f8ff78e9946856911b00c67477052b5
 #EXTINF:-1 tvg-logo="https://i.ibb.co/jDg5qWD/deportes3.png" tvg-id="M+ Deportes 3" group-title="MOVISTAR DEPORTES", MOVISTAR DEPORTES 3 FHD 4eee --> NEW ERA
@@ -587,16 +587,14 @@ http://127.0.0.1:6878/ace/getstream?id=aab0be9632ef2f53e99f2e596a8e6a30ed34a29c
 http://127.0.0.1:6878/ace/getstream?id=1b25b195b1b84d4b96830410657718e9e275ad49
 #EXTINF:-1 tvg-logo="" tvg-id="" group-title="OTROS", Direct Sport 2 FHDp ** d061 --> ELCANO
 http://127.0.0.1:6878/ace/getstream?id=0d780c1fb5fdf2121d9544f1a6892cb1053dd061
-#EXTINF:-1 tvg-logo="" tvg-id="" group-title="OTROS", Direct Sport FHDp ** 7dcb --> ELCANO
-http://127.0.0.1:6878/ace/getstream?id=abfb5236dee14625fe1b19ee27f3a89fb6767dcb
 #EXTINF:-1 tvg-logo="" tvg-id="" group-title="OTROS", Direct Sport FHDp ** bd1f --> ELCANO
 http://127.0.0.1:6878/ace/getstream?id=79e6e01eb3db42e3da2428895181c0d32e4abd1f
+#EXTINF:-1 tvg-logo="" tvg-id="" group-title="OTROS", Direct Sport FHDp ** 7dcb --> ELCANO
+http://127.0.0.1:6878/ace/getstream?id=abfb5236dee14625fe1b19ee27f3a89fb6767dcb
 #EXTINF:-1 tvg-logo="" tvg-id="" group-title="OTROS", Esport3 FHDp ** c3bc --> ELCANO
 http://127.0.0.1:6878/ace/getstream?id=8f59ce96e4c902ba2f5193af07546d7ff17fc3bc
 #EXTINF:-1 tvg-logo="" tvg-id="" group-title="OTROS", Film+ HD c311 --> NEW LOOP
 http://127.0.0.1:6878/ace/getstream?id=ec7aeef5723f654ee705a192bdcf4eff2fc7c311
-#EXTINF:-1 tvg-logo="" tvg-id="" group-title="OTROS", FOX ONE 4K ** d27d --> ELCANO
-http://127.0.0.1:6878/ace/getstream?id=f1e6e441e398910e77eb51ff452dba0a733dd27d
 #EXTINF:-1 tvg-logo="" tvg-id="" group-title="OTROS", M+ CINE ESPAnOL HD Spain cd1b --> NEW LOOP
 http://127.0.0.1:6878/ace/getstream?id=812151e00822387172fb695f526415c45ad8cd1b
 #EXTINF:-1 tvg-logo="" tvg-id="" group-title="OTROS", M+ Documentales HD Spain bef7 --> NEW LOOP
