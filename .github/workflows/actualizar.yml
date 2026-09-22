@@ -2,7 +2,7 @@ name: Actualizar
 
 on:
   schedule:
-    - cron: '1,31 * * * *'  # Minutos 1 y 31 de cada hora, en UTC
+    - cron: '1,31 * * * *' # Minutos 1 y 31 de cada hora, en UTC
   workflow_dispatch:
 
 permissions:
@@ -11,6 +11,7 @@ permissions:
 jobs:
   descarga_reemplazo:
     runs-on: ubuntu-latest
+
     env:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -36,52 +37,175 @@ jobs:
 
           echo "Dentro de horario Europe/Madrid: ${HOUR}:${MINUTE}. Continúo..."
 
-      - name: Instalar curl_cffi
-        shell: bash
-        run: |
-          python3 -m pip install --upgrade --disable-pip-version-check curl_cffi
+      - name: Preparar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
 
-      - name: Descargar archivo original simulando Chrome
+      - name: Instalar Playwright y Chromium
         shell: bash
         run: |
           set -euo pipefail
 
-          python3 <<'PY'
-          from curl_cffi import requests
+          npm install --no-save playwright
+          npx playwright install --with-deps chromium
 
-          url = (
-              "https://k2k4r8lm8tkmuxbc8lkmq1in3v0oya1p6pe9o5bu0hu30br5ko08k2gb"
-              ".ipns.inbrowser.link/data/listas/lista_iptv.m3u"
-          )
+      - name: Descargar archivo original mediante navegador
+        shell: bash
+        run: |
+          set -euo pipefail
 
-          print(f"Descargando: {url}")
+          node <<'JS'
+          const { chromium } = require("playwright");
+          const fs = require("fs");
 
-          response = requests.get(
-              url,
-              impersonate="chrome",
-              allow_redirects=True,
-              timeout=180,
-              headers={
-                  "Accept": "*/*",
-                  "Accept-Language": "es-ES,es;q=0.9,en;q=0.8",
-              },
-          )
+          const baseUrl =
+            "https://k2k4r8lm8tkmuxbc8lkmq1in3v0oya1p6pe9o5bu0hu30br5ko08k2gb" +
+            ".ipns.inbrowser.link";
 
-          print(f"HTTP final: {response.status_code}")
-          print(f"URL final: {response.url}")
+          const fileUrl =
+            baseUrl + "/data/listas/lista_iptv.m3u";
 
-          response.raise_for_status()
+          (async () => {
+            const browser = await chromium.launch({
+              headless: true
+            });
 
-          content = response.content
+            const context = await browser.newContext({
+              locale: "es-ES",
+              viewport: {
+                width: 1280,
+                height: 720
+              }
+            });
 
-          if not content.strip():
-              raise RuntimeError("El archivo descargado está vacío")
+            let workerDetected = false;
 
-          with open("lista_original.m3u", "wb") as output:
-              output.write(content)
+            context.on("serviceworker", worker => {
+              workerDetected = true;
+              console.log(`Service Worker detectado: ${worker.url()}`);
+            });
 
-          print(f"Archivo descargado correctamente: {len(content)} bytes")
-          PY
+            const page = await context.newPage();
+
+            console.log(`Abriendo gateway: ${baseUrl}`);
+
+            await page.goto(baseUrl, {
+              waitUntil: "domcontentloaded",
+              timeout: 180000
+            });
+
+            /*
+             * Espera a que el Service Worker quede activo y tome el control
+             * de la página. La propia página puede tardar unos segundos
+             * en registrarlo y activarlo.
+             */
+            await page.evaluate(async () => {
+              const deadline = Date.now() + 120000;
+
+              while (Date.now() < deadline) {
+                const registration =
+                  await navigator.serviceWorker.getRegistration();
+
+                if (
+                  registration &&
+                  registration.active &&
+                  registration.active.state === "activated" &&
+                  navigator.serviceWorker.controller
+                ) {
+                  return true;
+                }
+
+                await new Promise(resolve => setTimeout(resolve, 1000));
+              }
+
+              return false;
+            });
+
+            await page.waitForTimeout(3000);
+
+            const serviceWorkerState = await page.evaluate(async () => {
+              const registration =
+                await navigator.serviceWorker.getRegistration();
+
+              return {
+                controller: Boolean(navigator.serviceWorker.controller),
+                activeState: registration?.active?.state ?? null,
+                scope: registration?.scope ?? null
+              };
+            });
+
+            console.log(
+              `Service Worker: ${JSON.stringify(serviceWorkerState)}`
+            );
+
+            console.log(`Descargando mediante fetch(): ${fileUrl}`);
+
+            const result = await page.evaluate(async (url) => {
+              const response = await fetch(url, {
+                method: "GET",
+                cache: "no-store",
+                credentials: "omit"
+              });
+
+              const data = Array.from(
+                new Uint8Array(await response.arrayBuffer())
+              );
+
+              return {
+                status: response.status,
+                statusText: response.statusText,
+                contentType: response.headers.get("content-type"),
+                url: response.url,
+                data
+              };
+            }, fileUrl);
+
+            console.log(`HTTP final: ${result.status}`);
+            console.log(`Content-Type: ${result.contentType}`);
+            console.log(`URL final: ${result.url}`);
+
+            if (result.status < 200 || result.status >= 300) {
+              throw new Error(
+                `La descarga terminó con HTTP ${result.status} ` +
+                `${result.statusText}`
+              );
+            }
+
+            const body = Buffer.from(result.data);
+
+            if (!body.length) {
+              throw new Error("El archivo descargado está vacío");
+            }
+
+            const firstBytes = body
+              .toString("utf8")
+              .replace(/^\uFEFF/, "")
+              .trimStart();
+
+            if (!firstBytes.startsWith("#EXTM3U")) {
+              console.log(
+                "Primeros bytes recibidos:\n" +
+                body.toString("utf8", 0, 500)
+              );
+
+              throw new Error(
+                "La respuesta no parece una lista M3U válida"
+              );
+            }
+
+            fs.writeFileSync("lista_original.m3u", body);
+
+            console.log(
+              `Archivo descargado correctamente: ${body.length} bytes`
+            );
+
+            await browser.close();
+          })().catch(error => {
+            console.error(error);
+            process.exit(1);
+          });
+          JS
 
           if [ ! -s lista_original.m3u ]; then
             echo "Error: el archivo descargado está vacío"
@@ -107,7 +231,8 @@ jobs:
         run: |
           set -euo pipefail
 
-          sed 's/127.0.0.1:6878/127.0.0.1:6878/g' \
+          sed \
+            's/127.0.0.1:6878/127.0.0.1:6878/g' \
             lista_original.m3u > lista_origen.m3u
 
           echo "✅ Lista origen creada: lista_origen.m3u (127.0.0.1:6878)"
@@ -117,7 +242,8 @@ jobs:
         run: |
           set -euo pipefail
 
-          sed 's#http://127.0.0.1:6878#https://acexy.taimado.duckdns.org#g' \
+          sed \
+            's#http://127.0.0.1:6878#https://acexy.taimado.duckdns.org#g' \
             lista_original.m3u > lista_modificada.m3u
 
           echo "✅ Primera versión creada: lista_modificada.m3u (acexy.taimado.duckdns.org)"
@@ -127,4 +253,67 @@ jobs:
         run: |
           set -euo pipefail
 
-          sed 's/127.0.0.1:6878/192.168.1.254:6878/g' \
+          sed \
+            's/127.0.0.1:6878/192.168.1.254:6878/g' \
+            lista_original.m3u > lista_local.m3u
+
+          echo "✅ Segunda versión creada: lista_local.m3u (192.168.1.254:6878)"
+
+      - name: Crear tercera versión modificada
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          sed \
+            's/127.0.0.1:6878/100.83.12.86:6878/g' \
+            lista_original.m3u > lista_tanix.m3u
+
+          echo "✅ Tercera versión creada: lista_tanix.m3u (100.83.12.86:6878)"
+
+      - name: Crear cuarta versión modificada
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          sed \
+            's#http://127.0.0.1:6878#https://acexyce.taimado.duckdns.org#g' \
+            lista_original.m3u > lista_modificada_ce.m3u
+
+          echo "✅ Cuarta versión creada: lista_modificada_ce.m3u (acexyce.taimado.duckdns.org)"
+
+      - name: Verificar si hay cambios
+        id: verify_diff
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          git add \
+            lista_modificada.m3u \
+            lista_local.m3u \
+            lista_tanix.m3u \
+            lista_modificada_ce.m3u \
+            lista_origen.m3u
+
+          if git diff --staged --quiet; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "Sin cambios en las listas"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+            echo "Hay cambios en las listas"
+          fi
+
+      - name: Commit y push de las listas modificadas
+        if: steps.verify_diff.outputs.changed == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          git config user.email \
+            "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git config user.name "github-actions[bot]"
+
+          git commit \
+            -m "🤖 Lista M3U - $(TZ='Europe/Madrid' date +'%Y-%m-%d %H:%M:%S')"
+
+          git push
