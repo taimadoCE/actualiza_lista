@@ -473,10 +473,6 @@ http://192.168.1.254:6878/ace/getstream?id=cfb04bd3d4ca8d661eee02ed734ac767d04a0
 http://192.168.1.254:6878/ace/getstream?id=ffa09e597804001f634dd1829f031823411a2595
 #EXTINF:-1 tvg-logo="" tvg-id="" group-title="OTROS", Pluto TV Auto Motor Sport (720p) fa0a --> NEW LOOP
 http://192.168.1.254:6878/ace/getstream?id=93780e4164ed775a9a7cd67c44716de58463fa0a
-#EXTINF:-1 tvg-logo="" tvg-id="" group-title="OTROS", RFEF TV FHDp * 5cfc --> ELCANO
-http://192.168.1.254:6878/ace/getstream?id=7b742628b9f7e82902bdbc1ff92eba1988875cfc
-#EXTINF:-1 tvg-logo="" tvg-id="" group-title="OTROS", RFEF TV FHDp * 355f --> ELCANO
-http://192.168.1.254:6878/ace/getstream?id=177796041773be99b489dd3ce86144f243e7355f
 #EXTINF:-1 tvg-logo="" tvg-id="" group-title="OTROS", RTL+ SPORT EVENT 1 (DE) 23d3 --> SPORT TV
 http://192.168.1.254:6878/ace/getstream?id=a7319ebd54cb1db9a9db1574929ca8d305a323d3
 #EXTINF:-1 tvg-logo="" tvg-id="" group-title="OTROS", RTL+ SPORT EVENT 2 (DE) c466 --> SPORT TV
