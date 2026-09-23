@@ -2,7 +2,12 @@ name: Actualizar
 
 on:
   schedule:
-    - cron: '1,31 * * * *' # Minutos 1 y 31 de cada hora, en UTC
+    # Ejecutar a los minutos 07 y 37 de cada hora,
+    # entre las 09:00 y las 21:59, hora de Europe/Madrid.
+    - cron: '7,37 9-21 * * *'
+      timezone: 'Europe/Madrid'
+
+  # Permite ejecutar manualmente el workflow desde Actions.
   workflow_dispatch:
 
 permissions:
@@ -16,32 +21,51 @@ jobs:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
     steps:
+
+      # ============================================================
+      # INFORMACIÓN DE EJECUCIÓN
+      # ============================================================
+      - name: Información de ejecución
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          echo "=============================================="
+          echo "INICIO DEL WORKFLOW"
+          echo "=============================================="
+          echo "Evento:        ${{ github.event_name }}"
+          echo "Repositorio:   ${{ github.repository }}"
+          echo "Rama:          ${{ github.ref_name }}"
+          echo "Commit:        ${{ github.sha }}"
+          echo "Actor:         ${{ github.actor }}"
+          echo
+          echo "Hora UTC:"
+          date -u
+          echo
+          echo "Hora Europe/Madrid:"
+          TZ='Europe/Madrid' date
+          echo "=============================================="
+
+      # ============================================================
+      # CHECKOUT
+      # ============================================================
       - name: Checkout repo
         uses: actions/checkout@v5
         with:
           persist-credentials: true
           fetch-depth: 0
 
-      - name: Ejecutar solo de 09:05 a 21:59
-        shell: bash
-        run: |
-          set -euo pipefail
-
-          HOUR=$(TZ='Europe/Madrid' date +'%H')
-          MINUTE=$(TZ='Europe/Madrid' date +'%M')
-
-          if [ "$HOUR" -lt 9 ] || [ "$HOUR" -gt 21 ]; then
-            echo "Fuera de horario Europe/Madrid: ${HOUR}:${MINUTE}. Saliendo sin hacer nada."
-            exit 0
-          fi
-
-          echo "Dentro de horario Europe/Madrid: ${HOUR}:${MINUTE}. Continúo..."
-
+      # ============================================================
+      # NODE.JS
+      # ============================================================
       - name: Preparar Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 22
 
+      # ============================================================
+      # PLAYWRIGHT + CHROMIUM
+      # ============================================================
       - name: Instalar Playwright y Chromium
         shell: bash
         run: |
@@ -50,6 +74,9 @@ jobs:
           npm install --no-save playwright
           npx playwright install --with-deps chromium
 
+      # ============================================================
+      # DESCARGAR LISTA ORIGINAL
+      # ============================================================
       - name: Descargar archivo original mediante navegador
         shell: bash
         run: |
@@ -66,221 +93,344 @@ jobs:
           const fileUrl =
             baseUrl + "/data/listas/lista_iptv.m3u";
 
+          let browser;
+
           (async () => {
-            const browser = await chromium.launch({
-              headless: true
-            });
+            try {
+              console.log("==============================================");
+              console.log("DESCARGA DE LISTA M3U");
+              console.log("==============================================");
+              console.log(`Gateway: ${baseUrl}`);
+              console.log(`Archivo: ${fileUrl}`);
 
-            const context = await browser.newContext({
-              locale: "es-ES",
-              viewport: {
-                width: 1280,
-                height: 720
-              }
-            });
+              browser = await chromium.launch({
+                headless: true
+              });
 
-            let workerDetected = false;
+              const context = await browser.newContext({
+                locale: "es-ES",
+                viewport: {
+                  width: 1280,
+                  height: 720
+                }
+              });
 
-            context.on("serviceworker", worker => {
-              workerDetected = true;
-              console.log(`Service Worker detectado: ${worker.url()}`);
-            });
+              let workerDetected = false;
 
-            const page = await context.newPage();
+              context.on("serviceworker", worker => {
+                workerDetected = true;
 
-            console.log(`Abriendo gateway: ${baseUrl}`);
+                console.log(
+                  `Service Worker detectado: ${worker.url()}`
+                );
+              });
 
-            await page.goto(baseUrl, {
-              waitUntil: "domcontentloaded",
-              timeout: 180000
-            });
+              const page = await context.newPage();
 
-            /*
-             * Espera a que el Service Worker quede activo y tome el control
-             * de la página. La propia página puede tardar unos segundos
-             * en registrarlo y activarlo.
-             */
-            await page.evaluate(async () => {
-              const deadline = Date.now() + 120000;
+              console.log("Abriendo gateway...");
 
-              while (Date.now() < deadline) {
+              await page.goto(baseUrl, {
+                waitUntil: "domcontentloaded",
+                timeout: 180000
+              });
+
+              console.log("Gateway abierto correctamente.");
+
+              // ----------------------------------------------------
+              // Esperar a que el Service Worker quede activo
+              // ----------------------------------------------------
+              console.log(
+                "Esperando a que el Service Worker tome el control..."
+              );
+
+              const serviceWorkerReady = await page.evaluate(async () => {
+                const deadline = Date.now() + 120000;
+
+                while (Date.now() < deadline) {
+                  const registration =
+                    await navigator.serviceWorker.getRegistration();
+
+                  if (
+                    registration &&
+                    registration.active &&
+                    registration.active.state === "activated" &&
+                    navigator.serviceWorker.controller
+                  ) {
+                    return true;
+                  }
+
+                  await new Promise(resolve =>
+                    setTimeout(resolve, 1000)
+                  );
+                }
+
+                return false;
+              });
+
+              await page.waitForTimeout(3000);
+
+              const serviceWorkerState = await page.evaluate(async () => {
                 const registration =
                   await navigator.serviceWorker.getRegistration();
 
-                if (
-                  registration &&
-                  registration.active &&
-                  registration.active.state === "activated" &&
-                  navigator.serviceWorker.controller
-                ) {
-                  return true;
-                }
+                return {
+                  controller:
+                    Boolean(navigator.serviceWorker.controller),
 
-                await new Promise(resolve => setTimeout(resolve, 1000));
-              }
+                  activeState:
+                    registration?.active?.state ?? null,
 
-              return false;
-            });
-
-            await page.waitForTimeout(3000);
-
-            const serviceWorkerState = await page.evaluate(async () => {
-              const registration =
-                await navigator.serviceWorker.getRegistration();
-
-              return {
-                controller: Boolean(navigator.serviceWorker.controller),
-                activeState: registration?.active?.state ?? null,
-                scope: registration?.scope ?? null
-              };
-            });
-
-            console.log(
-              `Service Worker: ${JSON.stringify(serviceWorkerState)}`
-            );
-
-            console.log(`Descargando mediante fetch(): ${fileUrl}`);
-
-            const result = await page.evaluate(async (url) => {
-              const response = await fetch(url, {
-                method: "GET",
-                cache: "no-store",
-                credentials: "omit"
+                  scope:
+                    registration?.scope ?? null
+                };
               });
 
-              const data = Array.from(
-                new Uint8Array(await response.arrayBuffer())
-              );
-
-              return {
-                status: response.status,
-                statusText: response.statusText,
-                contentType: response.headers.get("content-type"),
-                url: response.url,
-                data
-              };
-            }, fileUrl);
-
-            console.log(`HTTP final: ${result.status}`);
-            console.log(`Content-Type: ${result.contentType}`);
-            console.log(`URL final: ${result.url}`);
-
-            if (result.status < 200 || result.status >= 300) {
-              throw new Error(
-                `La descarga terminó con HTTP ${result.status} ` +
-                `${result.statusText}`
-              );
-            }
-
-            const body = Buffer.from(result.data);
-
-            if (!body.length) {
-              throw new Error("El archivo descargado está vacío");
-            }
-
-            const firstBytes = body
-              .toString("utf8")
-              .replace(/^\uFEFF/, "")
-              .trimStart();
-
-            if (!firstBytes.startsWith("#EXTM3U")) {
               console.log(
-                "Primeros bytes recibidos:\n" +
-                body.toString("utf8", 0, 500)
+                `Service Worker detectado: ${workerDetected}`
               );
 
-              throw new Error(
-                "La respuesta no parece una lista M3U válida"
+              console.log(
+                `Service Worker listo: ${serviceWorkerReady}`
               );
+
+              console.log(
+                `Estado Service Worker: ` +
+                `${JSON.stringify(serviceWorkerState)}`
+              );
+
+              // ----------------------------------------------------
+              // Descargar mediante fetch()
+              // ----------------------------------------------------
+              console.log("");
+              console.log(
+                `Descargando mediante fetch(): ${fileUrl}`
+              );
+
+              const result = await page.evaluate(async (url) => {
+                const response = await fetch(url, {
+                  method: "GET",
+                  cache: "no-store",
+                  credentials: "omit"
+                });
+
+                const data = Array.from(
+                  new Uint8Array(
+                    await response.arrayBuffer()
+                  )
+                );
+
+                return {
+                  status: response.status,
+                  statusText: response.statusText,
+                  contentType:
+                    response.headers.get("content-type"),
+                  url: response.url,
+                  data
+                };
+              }, fileUrl);
+
+              console.log(
+                `HTTP final: ${result.status}`
+              );
+
+              console.log(
+                `Content-Type: ${result.contentType}`
+              );
+
+              console.log(
+                `URL final: ${result.url}`
+              );
+
+              // ----------------------------------------------------
+              // Comprobar HTTP
+              // ----------------------------------------------------
+              if (
+                result.status < 200 ||
+                result.status >= 300
+              ) {
+                throw new Error(
+                  `La descarga terminó con HTTP ` +
+                  `${result.status} ${result.statusText}`
+                );
+              }
+
+              const body = Buffer.from(result.data);
+
+              console.log(
+                `Bytes recibidos: ${body.length}`
+              );
+
+              if (!body.length) {
+                throw new Error(
+                  "El archivo descargado está vacío"
+                );
+              }
+
+              // ----------------------------------------------------
+              // Comprobar que realmente es una lista M3U
+              // ----------------------------------------------------
+              const firstBytes = body
+                .toString("utf8")
+                .replace(/^\uFEFF/, "")
+                .trimStart();
+
+              if (!firstBytes.startsWith("#EXTM3U")) {
+                console.log(
+                  "Primeros bytes recibidos:"
+                );
+
+                console.log(
+                  body.toString("utf8", 0, 500)
+                );
+
+                throw new Error(
+                  "La respuesta no parece una lista M3U válida"
+                );
+              }
+
+              // ----------------------------------------------------
+              // Guardar archivo
+              // ----------------------------------------------------
+              fs.writeFileSync(
+                "lista_original.m3u",
+                body
+              );
+
+              console.log(
+                `Archivo descargado correctamente: ` +
+                `${body.length} bytes`
+              );
+
+            } catch (error) {
+
+              console.error(
+                "ERROR DURANTE LA DESCARGA:"
+              );
+
+              console.error(error);
+
+              process.exitCode = 1;
+
+            } finally {
+
+              if (browser) {
+                await browser.close();
+              }
             }
-
-            fs.writeFileSync("lista_original.m3u", body);
-
-            console.log(
-              `Archivo descargado correctamente: ${body.length} bytes`
-            );
-
-            await browser.close();
-          })().catch(error => {
-            console.error(error);
-            process.exit(1);
-          });
+          })();
           JS
 
+          # --------------------------------------------------------
+          # Comprobación adicional
+          # --------------------------------------------------------
           if [ ! -s lista_original.m3u ]; then
-            echo "Error: el archivo descargado está vacío"
+            echo "ERROR: lista_original.m3u no existe o está vacío"
             exit 1
           fi
 
+          echo "OK: lista_original.m3u creada correctamente"
+
+      # ============================================================
+      # VALIDAR LISTA
+      # ============================================================
       - name: Validar lista descargada
         shell: bash
         run: |
           set -euo pipefail
 
           if ! grep -q '^#EXTM3U' lista_original.m3u; then
-            echo "Error: el archivo no parece una lista M3U válida"
+            echo "ERROR: el archivo no parece una lista M3U válida"
+            echo
             echo "Primeras líneas recibidas:"
             head -n 10 lista_original.m3u
             exit 1
           fi
 
-          echo "✅ Lista M3U válida"
+          echo "OK: Lista M3U válida"
 
-      - name: Lista origen
+      # ============================================================
+      # LISTA ORIGEN
+      # ============================================================
+      - name: Crear lista origen
         shell: bash
         run: |
           set -euo pipefail
 
           sed \
             's/127.0.0.1:6878/127.0.0.1:6878/g' \
-            lista_original.m3u > lista_origen.m3u
+            lista_original.m3u \
+            > lista_origen.m3u
 
-          echo "✅ Lista origen creada: lista_origen.m3u (127.0.0.1:6878)"
+          echo "OK: lista_origen.m3u creada"
+          echo "    127.0.0.1:6878"
 
-      - name: Crear primera versión modificada
+      # ============================================================
+      # LISTA PÚBLICA
+      # ============================================================
+      - name: Crear lista pública
         shell: bash
         run: |
           set -euo pipefail
 
           sed \
             's#http://127.0.0.1:6878#https://acexy.taimado.duckdns.org#g' \
-            lista_original.m3u > lista_modificada.m3u
+            lista_original.m3u \
+            > lista_modificada.m3u
 
-          echo "✅ Primera versión creada: lista_modificada.m3u (acexy.taimado.duckdns.org)"
+          echo "OK: lista_modificada.m3u creada"
+          echo "    https://acexy.taimado.duckdns.org"
 
-      - name: Crear segunda versión modificada
+      # ============================================================
+      # LISTA LAN
+      # ============================================================
+      - name: Crear lista LAN
         shell: bash
         run: |
           set -euo pipefail
 
           sed \
             's/127.0.0.1:6878/192.168.1.254:6878/g' \
-            lista_original.m3u > lista_local.m3u
+            lista_original.m3u \
+            > lista_local.m3u
 
-          echo "✅ Segunda versión creada: lista_local.m3u (192.168.1.254:6878)"
+          echo "OK: lista_local.m3u creada"
+          echo "    192.168.1.254:6878"
 
-      - name: Crear tercera versión modificada
+      # ============================================================
+      # LISTA TANIX
+      # ============================================================
+      - name: Crear lista Tanix
         shell: bash
         run: |
           set -euo pipefail
 
           sed \
             's/127.0.0.1:6878/100.83.12.86:6878/g' \
-            lista_original.m3u > lista_tanix.m3u
+            lista_original.m3u \
+            > lista_tanix.m3u
 
-          echo "✅ Tercera versión creada: lista_tanix.m3u (100.83.12.86:6878)"
+          echo "OK: lista_tanix.m3u creada"
+          echo "    100.83.12.86:6878"
 
-      - name: Crear cuarta versión modificada
+      # ============================================================
+      # LISTA CE
+      # ============================================================
+      - name: Crear lista CE
         shell: bash
         run: |
           set -euo pipefail
 
           sed \
             's#http://127.0.0.1:6878#https://acexyce.taimado.duckdns.org#g' \
-            lista_original.m3u > lista_modificada_ce.m3u
+            lista_original.m3u \
+            > lista_modificada_ce.m3u
 
-          echo "✅ Cuarta versión creada: lista_modificada_ce.m3u (acexyce.taimado.duckdns.org)"
+          echo "OK: lista_modificada_ce.m3u creada"
+          echo "    https://acexyce.taimado.duckdns.org"
 
+      # ============================================================
+      # COMPROBAR CAMBIOS
+      # ============================================================
       - name: Verificar si hay cambios
         id: verify_diff
         shell: bash
@@ -295,13 +445,28 @@ jobs:
             lista_origen.m3u
 
           if git diff --staged --quiet; then
+
             echo "changed=false" >> "$GITHUB_OUTPUT"
-            echo "Sin cambios en las listas"
+
+            echo "=============================================="
+            echo "SIN CAMBIOS"
+            echo "=============================================="
+
           else
+
             echo "changed=true" >> "$GITHUB_OUTPUT"
-            echo "Hay cambios en las listas"
+
+            echo "=============================================="
+            echo "HAY CAMBIOS"
+            echo "=============================================="
+
+            git diff --staged --stat
+
           fi
 
+      # ============================================================
+      # COMMIT Y PUSH
+      # ============================================================
       - name: Commit y push de las listas modificadas
         if: steps.verify_diff.outputs.changed == 'true'
         shell: bash
@@ -311,9 +476,33 @@ jobs:
           git config user.email \
             "41898282+github-actions[bot]@users.noreply.github.com"
 
-          git config user.name "github-actions[bot]"
+          git config user.name \
+            "github-actions[bot]"
 
           git commit \
             -m "🤖 Lista M3U - $(TZ='Europe/Madrid' date +'%Y-%m-%d %H:%M:%S')"
 
           git push
+
+          echo "=============================================="
+          echo "PUSH COMPLETADO"
+          echo "=============================================="
+
+      # ============================================================
+      # RESUMEN FINAL
+      # ============================================================
+      - name: Resumen final
+        if: always()
+        shell: bash
+        run: |
+          echo "=============================================="
+          echo "FIN DEL WORKFLOW"
+          echo "=============================================="
+          echo "Evento: ${{ github.event_name }}"
+          echo "Hora UTC:"
+          date -u
+          echo
+          echo "Hora Europe/Madrid:"
+          TZ='Europe/Madrid' date
+          echo "=============================================="
+
