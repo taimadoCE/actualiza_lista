@@ -70,8 +70,6 @@ jobs:
                 timeout: 180000
               });
 
-              // Comprobaciones breves desde Node: si la página navega,
-              // reintentamos sobre el nuevo documento.
               async function esperarServiceWorker(timeoutMs = 120000) {
                 const deadline = Date.now() + timeoutMs;
 
@@ -177,13 +175,12 @@ jobs:
                 throw new Error("El archivo descargado está vacío");
               }
 
-              const firstLine = body.toString("utf8")
+              const normalizedStart = body.toString("utf8")
                 .replace(/^\uFEFF/, "")
-                .trimStart()
-                .split(/\r?\n/, 1)[0]
-                .trimEnd();
+                .trimStart();
 
-              if (firstLine !== "#EXTM3U") {
+              // La primera línea puede incluir atributos como url-tvg.
+              if (!normalizedStart.startsWith("#EXTM3U")) {
                 console.log(
                   "Primeros bytes recibidos:\n" +
                   body.toString("utf8", 0, 500)
