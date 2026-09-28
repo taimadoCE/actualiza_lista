@@ -66,4 +66,188 @@ jobs:
               const page = await context.newPage();
 
               console.log(`Abriendo gateway: ${baseUrl}`);
-              await page.goto(
+              await page.goto(baseUrl, {
+                waitUntil: "domcontentloaded",
+                timeout: 180000
+              });
+
+              const waitForController = () => page.evaluate(async () => {
+                const deadline = Date.now() + 120000;
+
+                while (Date.now() < deadline) {
+                  const registration =
+                    await navigator.serviceWorker.getRegistration();
+
+                  if (
+                    registration?.active?.state === "activated" &&
+                    navigator.serviceWorker.controller
+                  ) {
+                    return true;
+                  }
+
+                  await new Promise(resolve => setTimeout(resolve, 1000));
+                }
+
+                return false;
+              });
+
+              let controlled = await waitForController();
+
+              if (!controlled) {
+                console.log(
+                  "El Service Worker aún no controla la página; recargando."
+                );
+
+                await page.reload({
+                  waitUntil: "domcontentloaded",
+                  timeout: 180000
+                });
+
+                controlled = await waitForController();
+              }
+
+              if (!controlled) {
+                throw new Error(
+                  "El Service Worker no tomó el control de la página"
+                );
+              }
+
+              const state = await page.evaluate(async () => {
+                const registration =
+                  await navigator.serviceWorker.getRegistration();
+
+                return {
+                  controller: Boolean(navigator.serviceWorker.controller),
+                  activeState: registration?.active?.state ?? null,
+                  scope: registration?.scope ?? null
+                };
+              });
+
+              console.log(`Service Worker: ${JSON.stringify(state)}`);
+              console.log(`Descargando mediante fetch(): ${fileUrl}`);
+
+              const response = await page.evaluate(async url => {
+                const result = await fetch(url, {
+                  method: "GET",
+                  cache: "no-store",
+                  credentials: "omit"
+                });
+
+                return {
+                  status: result.status,
+                  statusText: result.statusText,
+                  contentType: result.headers.get("content-type"),
+                  url: result.url,
+                  data: Array.from(
+                    new Uint8Array(await result.arrayBuffer())
+                  )
+                };
+              }, fileUrl);
+
+              console.log(`HTTP final: ${response.status}`);
+              console.log(`Content-Type: ${response.contentType}`);
+              console.log(`URL final: ${response.url}`);
+
+              if (response.status < 200 || response.status >= 300) {
+                throw new Error(
+                  `La descarga terminó con HTTP ${response.status} ` +
+                  response.statusText
+                );
+              }
+
+              const body = Buffer.from(response.data);
+
+              if (!body.length) {
+                throw new Error("El archivo descargado está vacío");
+              }
+
+              const text = body.toString("utf8");
+              const firstLine = text
+                .replace(/^\uFEFF/, "")
+                .trimStart()
+                .split(/\r?\n/, 1)[0]
+                .trimEnd();
+
+              if (firstLine !== "#EXTM3U") {
+                console.log(
+                  "Primeros bytes recibidos:\n" +
+                  body.toString("utf8", 0, 500)
+                );
+                throw new Error(
+                  "La respuesta no parece una lista M3U válida"
+                );
+              }
+
+              fs.writeFileSync("lista_original.m3u", body);
+              console.log(
+                `Archivo descargado correctamente: ${body.length} bytes`
+              );
+            } finally {
+              await browser.close();
+            }
+          })().catch(error => {
+            console.error(error);
+            process.exitCode = 1;
+          });
+          JS
+
+      - name: Crear variantes de la lista
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          cp lista_original.m3u lista_origen.m3u
+
+          sed \
+            's#http://127.0.0.1:6878#https://acexy.taimado.duckdns.org#g' \
+            lista_original.m3u > lista_modificada.m3u
+
+          sed \
+            's#127.0.0.1:6878#192.168.1.254:6878#g' \
+            lista_original.m3u > lista_local.m3u
+
+          sed \
+            's#127.0.0.1:6878#100.83.12.86:6878#g' \
+            lista_original.m3u > lista_tanix.m3u
+
+          sed \
+            's#http://127.0.0.1:6878#https://acexyce.taimado.duckdns.org#g' \
+            lista_original.m3u > lista_modificada_ce.m3u
+
+          echo "Creadas las cinco variantes de la lista."
+
+      - name: Verificar si hay cambios
+        id: verify_diff
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          git add -- \
+            lista_origen.m3u \
+            lista_modificada.m3u \
+            lista_local.m3u \
+            lista_tanix.m3u \
+            lista_modificada_ce.m3u
+
+          if git diff --cached --quiet; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "Sin cambios en las listas."
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+            echo "Hay cambios en las listas."
+          fi
+
+      - name: Commit y push de las listas
+        if: steps.verify_diff.outputs.changed == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          git config user.email \
+            "41898282+github-actions[bot]@users.noreply.github.com"
+          git config user.name "github-actions[bot]"
+
+          git commit \
+            -m "🤖 Lista M3U - $(TZ=Europe/Madrid date +'%Y-%m-%d %H:%M:%S')"
+
+          git push
