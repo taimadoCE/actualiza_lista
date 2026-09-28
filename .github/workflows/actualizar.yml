@@ -40,7 +40,6 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-
           node <<'JS'
           const { chromium } = require("playwright");
           const fs = require("fs");
@@ -71,29 +70,57 @@ jobs:
                 timeout: 180000
               });
 
-              const waitForController = () => page.evaluate(async () => {
-                const deadline = Date.now() + 120000;
+              // Comprobaciones breves desde Node: si la página navega,
+              // reintentamos sobre el nuevo documento.
+              async function esperarServiceWorker(timeoutMs = 120000) {
+                const deadline = Date.now() + timeoutMs;
 
                 while (Date.now() < deadline) {
-                  const registration =
-                    await navigator.serviceWorker.getRegistration();
+                  try {
+                    const state = await page.evaluate(async () => {
+                      const registration =
+                        await navigator.serviceWorker.getRegistration();
 
-                  if (
-                    registration?.active?.state === "activated" &&
-                    navigator.serviceWorker.controller
-                  ) {
-                    return true;
+                      return {
+                        controller: Boolean(
+                          navigator.serviceWorker.controller
+                        ),
+                        activeState:
+                          registration?.active?.state ?? null,
+                        scope: registration?.scope ?? null
+                      };
+                    });
+
+                    if (
+                      state.controller &&
+                      state.activeState === "activated"
+                    ) {
+                      return state;
+                    }
+                  } catch (error) {
+                    const message = String(error);
+
+                    if (
+                      !message.includes("Execution context was destroyed") &&
+                      !message.includes("navigation")
+                    ) {
+                      throw error;
+                    }
+
+                    console.log(
+                      "La página navegó durante la activación; reintentando..."
+                    );
                   }
 
                   await new Promise(resolve => setTimeout(resolve, 1000));
                 }
 
-                return false;
-              });
+                return null;
+              }
 
-              let controlled = await waitForController();
+              let state = await esperarServiceWorker();
 
-              if (!controlled) {
+              if (!state) {
                 console.log(
                   "El Service Worker aún no controla la página; recargando."
                 );
@@ -103,25 +130,14 @@ jobs:
                   timeout: 180000
                 });
 
-                controlled = await waitForController();
+                state = await esperarServiceWorker();
               }
 
-              if (!controlled) {
+              if (!state) {
                 throw new Error(
                   "El Service Worker no tomó el control de la página"
                 );
               }
-
-              const state = await page.evaluate(async () => {
-                const registration =
-                  await navigator.serviceWorker.getRegistration();
-
-                return {
-                  controller: Boolean(navigator.serviceWorker.controller),
-                  activeState: registration?.active?.state ?? null,
-                  scope: registration?.scope ?? null
-                };
-              });
 
               console.log(`Service Worker: ${JSON.stringify(state)}`);
               console.log(`Descargando mediante fetch(): ${fileUrl}`);
@@ -161,8 +177,7 @@ jobs:
                 throw new Error("El archivo descargado está vacío");
               }
 
-              const text = body.toString("utf8");
-              const firstLine = text
+              const firstLine = body.toString("utf8")
                 .replace(/^\uFEFF/, "")
                 .trimStart()
                 .split(/\r?\n/, 1)[0]
