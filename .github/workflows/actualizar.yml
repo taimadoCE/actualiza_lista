@@ -23,6 +23,7 @@ jobs:
         uses: actions/checkout@v5
         with:
           persist-credentials: true
+          fetch-depth: 0
 
       - name: Preparar Node.js
         uses: actions/setup-node@v4
@@ -36,7 +37,7 @@ jobs:
           npm install --no-save --no-package-lock playwright
           npx playwright install --with-deps chromium
 
-      - name: Descargar archivo original mediante navegador
+      - name: Descargar archivo original con reintentos
         shell: bash
         run: |
           set -euo pipefail
@@ -48,8 +49,74 @@ jobs:
             "https://k2k4r8lm8tkmuxbc8lkmq1in3v0oya1p6pe9o5bu0hu30br5ko08k2gb" +
             ".ipns.inbrowser.link";
           const fileUrl = baseUrl + "/data/listas/lista_iptv.m3u";
+          const maxAttempts = 4;
 
-          (async () => {
+          function sleep(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+          }
+
+          function validarBody(body) {
+            if (!body || !body.length) {
+              throw new Error("El archivo descargado está vacío");
+            }
+
+            const normalizedStart = body
+              .toString("utf8")
+              .replace(/^\uFEFF/, "")
+              .trimStart();
+
+            if (!normalizedStart.startsWith("#EXTM3U")) {
+              console.log(
+                "Primeros bytes recibidos:\n" +
+                body.toString("utf8", 0, 500)
+              );
+              throw new Error("La respuesta no parece una lista M3U válida");
+            }
+
+            return true;
+          }
+
+          async function esperarServiceWorker(page, timeoutMs = 120000) {
+            const deadline = Date.now() + timeoutMs;
+
+            while (Date.now() < deadline) {
+              try {
+                const state = await page.evaluate(async () => {
+                  const registration =
+                    await navigator.serviceWorker.getRegistration();
+
+                  return {
+                    controller: Boolean(navigator.serviceWorker.controller),
+                    activeState: registration?.active?.state ?? null,
+                    scope: registration?.scope ?? null
+                  };
+                });
+
+                if (state.controller && state.activeState === "activated") {
+                  return state;
+                }
+              } catch (error) {
+                const message = String(error);
+
+                if (
+                  !message.includes("Execution context was destroyed") &&
+                  !message.includes("navigation")
+                ) {
+                  throw error;
+                }
+
+                console.log(
+                  "La página navegó durante la activación; reintentando..."
+                );
+              }
+
+              await sleep(1000);
+            }
+
+            return null;
+          }
+
+          async function descargarConNavegador() {
             const browser = await chromium.launch({ headless: true });
 
             try {
@@ -70,53 +137,7 @@ jobs:
                 timeout: 180000
               });
 
-              async function esperarServiceWorker(timeoutMs = 120000) {
-                const deadline = Date.now() + timeoutMs;
-
-                while (Date.now() < deadline) {
-                  try {
-                    const state = await page.evaluate(async () => {
-                      const registration =
-                        await navigator.serviceWorker.getRegistration();
-
-                      return {
-                        controller: Boolean(
-                          navigator.serviceWorker.controller
-                        ),
-                        activeState:
-                          registration?.active?.state ?? null,
-                        scope: registration?.scope ?? null
-                      };
-                    });
-
-                    if (
-                      state.controller &&
-                      state.activeState === "activated"
-                    ) {
-                      return state;
-                    }
-                  } catch (error) {
-                    const message = String(error);
-
-                    if (
-                      !message.includes("Execution context was destroyed") &&
-                      !message.includes("navigation")
-                    ) {
-                      throw error;
-                    }
-
-                    console.log(
-                      "La página navegó durante la activación; reintentando..."
-                    );
-                  }
-
-                  await new Promise(resolve => setTimeout(resolve, 1000));
-                }
-
-                return null;
-              }
-
-              let state = await esperarServiceWorker();
+              let state = await esperarServiceWorker(page);
 
               if (!state) {
                 console.log(
@@ -128,7 +149,7 @@ jobs:
                   timeout: 180000
                 });
 
-                state = await esperarServiceWorker();
+                state = await esperarServiceWorker(page);
               }
 
               if (!state) {
@@ -170,37 +191,98 @@ jobs:
               }
 
               const body = Buffer.from(response.data);
-
-              if (!body.length) {
-                throw new Error("El archivo descargado está vacío");
-              }
-
-              const normalizedStart = body.toString("utf8")
-                .replace(/^\uFEFF/, "")
-                .trimStart();
-
-              // La primera línea puede incluir atributos como url-tvg.
-              if (!normalizedStart.startsWith("#EXTM3U")) {
-                console.log(
-                  "Primeros bytes recibidos:\n" +
-                  body.toString("utf8", 0, 500)
-                );
-                throw new Error(
-                  "La respuesta no parece una lista M3U válida"
-                );
-              }
+              validarBody(body);
 
               fs.writeFileSync("lista_original.m3u", body);
               console.log(
-                `Archivo descargado correctamente: ${body.length} bytes`
+                `Archivo descargado correctamente con navegador: ${body.length} bytes`
               );
+              return body;
             } finally {
               await browser.close();
             }
-          })().catch(error => {
-            console.error(error);
-            process.exitCode = 1;
-          });
+          }
+
+          async function descargarDirecta() {
+            console.log(`Intentando descarga directa: ${fileUrl}`);
+
+            const response = await fetch(fileUrl, {
+              method: "GET",
+              cache: "no-store",
+              redirect: "follow"
+            });
+
+            console.log(`HTTP directo: ${response.status}`);
+            console.log(`Content-Type directo: ${response.headers.get("content-type")}`);
+            console.log(`URL directa: ${response.url}`);
+
+            if (!response.ok) {
+              throw new Error(
+                `Descarga directa terminó con HTTP ${response.status} ` +
+                response.statusText
+              );
+            }
+
+            const body = Buffer.from(await response.arrayBuffer());
+            validarBody(body);
+
+            fs.writeFileSync("lista_original.m3u", body);
+            console.log(
+              `Archivo descargado correctamente con fetch directo: ${body.length} bytes`
+            );
+            return body;
+          }
+
+          async function intentarDescargaConReintentos() {
+            let lastError = null;
+
+            for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+              try {
+                console.log(`=== Intento ${attempt}/${maxAttempts} ===`);
+
+                try {
+                  await descargarConNavegador();
+                  return;
+                } catch (browserError) {
+                  console.warn(
+                    `Navegador falló en intento ${attempt}: ${browserError.message}`
+                  );
+
+                  // Fallback robusto: si el navegador falla, probamos el fetch directo
+                  try {
+                    await descargarDirecta();
+                    return;
+                  } catch (directError) {
+                    const combinedError = new Error(
+                      `Navegador: ${browserError.message}; Directo: ${directError.message}`
+                    );
+                    throw combinedError;
+                  }
+                }
+              } catch (error) {
+                lastError = error;
+                console.error(`Fallo intento ${attempt}/${maxAttempts}: ${error.message}`);
+
+                if (attempt < maxAttempts) {
+                  const waitMs = 2000 * attempt;
+                  console.log(`Esperando ${waitMs}ms antes de reintentar...`);
+                  await sleep(waitMs);
+                }
+              }
+            }
+
+            throw lastError || new Error("No se pudo completar la descarga tras varios intentos");
+          }
+
+          (async () => {
+            try {
+              await intentarDescargaConReintentos();
+            } catch (error) {
+              console.error("ERROR FINAL:");
+              console.error(error);
+              process.exitCode = 1;
+            }
+          })();
           JS
 
       - name: Crear variantes de la lista
@@ -249,6 +331,15 @@ jobs:
             echo "Hay cambios en las listas."
           fi
 
+      - name: Preparar rama antes del push
+        if: steps.verify_diff.outputs.changed == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          current_branch="$(git branch --show-current || echo "${GITHUB_REF_NAME:-main}")"
+          echo "current_branch=$current_branch" >> "$GITHUB_ENV"
+          git pull --rebase origin "$current_branch"
+
       - name: Commit y push de las listas
         if: steps.verify_diff.outputs.changed == 'true'
         shell: bash
@@ -262,4 +353,4 @@ jobs:
           git commit \
             -m "🤖 Lista M3U - $(TZ=Europe/Madrid date +'%Y-%m-%d %H:%M:%S')"
 
-          git push
+          git push origin "HEAD:${current_branch}"
