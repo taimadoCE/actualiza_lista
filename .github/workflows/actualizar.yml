@@ -44,13 +44,9 @@ jobs:
           node <<'JS'
           const { chromium } = require("playwright");
           const fs = require("fs");
-
-          const baseUrl =
-            "https://k2k4r8lm8tkmuxbc8lkmq1in3v0oya1p6pe9o5bu0hu30br5ko08k2gb" +
-            ".ipns.inbrowser.link";
-          const fileUrl = baseUrl + "/data/listas/lista_iptv.m3u";
+          const fileUrl =
+            "https://prueba.prueba.workers.dev/prueba/hashes_acestream.m3u";
           const maxAttempts = 4;
-
           function sleep(ms) {
             return new Promise(resolve => setTimeout(resolve, ms));
           }
