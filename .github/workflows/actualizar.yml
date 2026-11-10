@@ -1,192 +1,519 @@
-name: Actualizar listas M3U
+name: Actualizar
 
 on:
-  schedule:
-    # Runs at 7 and 37 minutes past the hour, between 09:00 and 21:59
-    - cron: '7,37 9-21 * * *'
-  timezone: 'Europe/Madrid'
-  workflow_dispatch:
+schedule:
+- cron: '10,40 9-21 * * *'
+timezone: 'Europe/Madrid'
+workflow_dispatch:
 
 permissions:
-  contents: write
+contents: write
 
 concurrency:
-  group: actualizar-listas-m3u-${{ github.ref }}
-  cancel-in-progress: false
+group: actualizar-listas-m3u-${{ github.ref }}
+cancel-in-progress: false
 
 jobs:
-  descarga_reemplazo:
-    runs-on: ubuntu-latest
-    timeout-minutes: 25
+descarga_reemplazo:
+runs-on: ubuntu-latest
+timeout-minutes: 25
+env:
+  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-    steps:
-      - name: Checkout repo
-        uses: actions/checkout@v5
-        with:
-          persist-credentials: true
-          fetch-depth: 0
+steps:
+  - name: Checkout repo
+    uses: actions/checkout@v5
+    with:
+      persist-credentials: true
+      
+  - name: Preparar Node.js
+    uses: actions/setup-node@v4
+    with:
+      node-version: 22
 
-      - name: Preparar Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 24
+  - name: Instalar Playwright y Chromium
+    shell: bash
+    run: |
+      set -euo pipefail
+      npm install --no-save --no-package-lock playwright
+      npx playwright install --with-deps chromium
 
-      - name: Instalar Playwright y Chromium
-        shell: bash
-        run: |
-          set -euo pipefail
-          npm install --no-save --no-package-lock playwright
-          npx playwright install --with-deps chromium
+  - name: Descargar archivo original mediante navegador
+    shell: bash
+    run: |
+      set -euo pipefail
+      node <<'JS'
+      const { chromium } = require("playwright");
+      const fs = require("fs");
 
-      - name: Descargar archivo original con reintentos
-        shell: bash
-        run: |
-          set -euo pipefail
-          node <<'JS'
-          const { chromium } = require("playwright");
-          const fs = require("fs");
+      const baseUrl =
+        "https://k2k4r8lm8tkmuxbc8lkmq1in3v0oya1p6pe9o5bu0hu30br5ko08k2gb" +
+        ".ipns.inbrowser.link";
+      const fileUrl = baseUrl + "/data/listas/lista_iptv.m3u";
 
-          const fileUrl =
-            "https://tokyo.elcano-ipfs.workers.dev/k51qzi5uqu5dh5qej4b9wlcr5i6vhc7rcfkekhrxqek5c9lk6gdaiik820fecs/hashes_acestream.m3u";
+      (async () => {
+        const browser = await chromium.launch({ headless: true });
 
-          const maxAttempts = 4;
+        try {
+          const context = await browser.newContext({
+            locale: "es-ES",
+            viewport: { width: 1280, height: 720 }
+          });
 
-          function sleep(ms) {
-            return new Promise(resolve => setTimeout(resolve, ms));
-          }
+          context.on("serviceworker", worker => {
+            console.log(`Service Worker detectado: ${worker.url()}`);
+          });
 
-          function validarBody(body) {
-            if (!body || !body.length) {
-              throw new Error("El archivo descargado está vacío");
-            }
+          const page = await context.newPage();
 
-            const normalizedStart = body
-              .toString("utf8")
-              .replace(/^\uFEFF/, "")
-              .trimStart();
+          console.log(`Abriendo gateway: ${baseUrl}`);
+          await page.goto(baseUrl, {
+            waitUntil: "domcontentloaded",
+            timeout: 180000
+          });
 
-            if (!normalizedStart.startsWith("#EXTM3U")) {
-              console.log(
-                "El contenido descargado no comienza por #EXTM3U"
-              );
+        async function esperarServiceWorker(timeoutMs = 120000) {
+            const deadline = Date.now() + timeoutMs;
 
-              throw new Error(
-                "El archivo descargado no parece un archivo M3U válido"
-              );
-            }
-          }
-
-          async function descargarArchivo() {
-            let ultimoError = null;
-
-            for (let intento = 1; intento <= maxAttempts; intento++) {
+            while (Date.now() < deadline) {
               try {
-                console.log(
-                  `Intento ${intento} de ${maxAttempts} para descargar el archivo...`
-                );
+                const state = await page.evaluate(async () => {
+                  const registration =
+                    await navigator.serviceWorker.getRegistration();
 
-                const browser = await chromium.launch({
-                  headless: true
+                  return {
+                    controller: Boolean(
+                      navigator.serviceWorker.controller
+                    ),
+                    activeState:
+                      registration?.active?.state ?? null,
+                    scope: registration?.scope ?? null
+                  };
                 });
 
-                const context = await browser.newContext();
-                const page = await context.newPage();
-
-                const response = await page.goto(fileUrl, {
-                  waitUntil: "domcontentloaded",
-                  timeout: 60000
-                });
-
-                if (!response || !response.ok()) {
-                  throw new Error(
-                    `La descarga devolvió el estado ${
-                      response ? response.status() : "desconocido"
-                    }`
-                  );
+                if (
+                  state.controller &&
+                  state.activeState === "activated"
+                ) {
+                  return state;
                 }
-
-                const body = await response.body();
-
-                validarBody(body);
-
-                fs.writeFileSync("lista_original.m3u", body);
-
-                await browser.close();
-
-                console.log("Archivo descargado y guardado correctamente.");
-
-                return;
               } catch (error) {
-                ultimoError = error;
+                const message = String(error);
 
-                console.error(
-                  `Error en el intento ${intento}: ${error.message}`
-                );
-
-                if (intento < maxAttempts) {
-                  const espera = intento * 15000;
-
-                  console.log(
-                    `Esperando ${espera / 1000} segundos antes del siguiente intento...`
-                  );
-
-                  await sleep(espera);
+                if (
+                  !message.includes("Execution context was destroyed") &&
+                  !message.includes("navigation")
+                ) {
+                  throw error;
                 }
+
+                console.log(
+                  "La página navegó durante la activación; reintentando..."
+                );
               }
+
+              await new Promise(resolve => setTimeout(resolve, 1000));
             }
 
+            return null;
+          }
+
+          let state = await esperarServiceWorker();
+
+          if (!state) {
+            console.log(
+              "El Service Worker aún no controla la página; recargando."
+            );
+
+            await page.reload({
+              waitUntil: "domcontentloaded",
+              timeout: 180000
+            });
+
+            state = await esperarServiceWorker();
+          }
+
+          if (!state) {
             throw new Error(
-              `No se pudo descargar el archivo tras ${maxAttempts} intentos: ${ultimoError.message}`
+              "El Service Worker no tomó el control de la página"
             );
           }
 
-          descargarArchivo()
-            .then(() => {
-              console.log("Descarga completada correctamente.");
-              process.exit(0);
-            })
-            .catch(error => {
-              console.error(error.message);
-              process.exit(1);
+          console.log(`Service Worker: ${JSON.stringify(state)}`);
+          console.log(`Descargando mediante fetch(): ${fileUrl}`);
+
+          const response = await page.evaluate(async url => {
+            const result = await fetch(url, {
+              method: "GET",
+              cache: "no-store",
+              credentials: "omit"
             });
-          JS
 
-      - name: Preparar rama antes del push
-        shell: bash
-        run: |
-          set -euo pipefail
+env:
+  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-          current_branch="$(git branch --show-current || echo "${GITHUB_REF_NAME:-main}")"
-          echo "current_branch=$current_branch" >> "$GITHUB_ENV"
+steps:
+  - name: Checkout repo
+    uses: actions/checkout@v5
+    with:
+      persist-credentials: true
+      
+  - name: Preparar Node.js
+    uses: actions/setup-node@v4
+    with:
+      node-version: 22
 
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
+  - name: Instalar Playwright y Chromium
+    shell: bash
+    run: |
+      set -euo pipefail
+      npm install --no-save --no-package-lock playwright
+      npx playwright install --with-deps chromium
 
-          git add -A
+  - name: Descargar archivo original mediante navegador
+    shell: bash
+    run: |
+      set -euo pipefail
+      node <<'JS'
+      const { chromium } = require("playwright");
+      const fs = require("fs");
 
-          if git diff --cached --quiet; then
-            echo "No hay cambios que confirmar antes del rebase."
-          else
-            git commit -m "chore: actualizar listas M3U antes del rebase"
-          fi
+      const baseUrl =
+        "https://k2k4r8lm8tkmuxbc8lkmq1in3v0oya1p6pe9o5bu0hu30br5ko08k2gb" +
+        ".ipns.inbrowser.link";
+      const fileUrl = baseUrl + "/data/listas/lista_iptv.m3u";
 
-          git pull --rebase origin "$current_branch"
+      (async () => {
+        const browser = await chromium.launch({ headless: true });
 
-      - name: Commit y push de la lista actualizada
-        shell: bash
-        run: |
-          set -euo pipefail
+        try {
+          const context = await browser.newContext({
+            locale: "es-ES",
+            viewport: { width: 1280, height: 720 }
+          });
 
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
+          context.on("serviceworker", worker => {
+            console.log(`Service Worker detectado: ${worker.url()}`);
+          });
 
-          git add -A
+          const page = await context.newPage();
 
-          if git diff --cached --quiet; then
-            echo "No hay cambios nuevos que confirmar."
-            exit 0
-          fi
+          console.log(`Abriendo gateway: ${baseUrl}`);
+          await page.goto(baseUrl, {
+            waitUntil: "domcontentloaded",
+            timeout: 180000
+          });
 
-          git commit -m "chore: actualizar hashes AceStream"
+        async function esperarServiceWorker(timeoutMs = 120000) {
+            const deadline = Date.now() + timeoutMs;
 
-          git push origin HEAD:"$current_branch"
+            while (Date.now() < deadline) {
+              try {
+                const state = await page.evaluate(async () => {
+                  const registration =
+                    await navigator.serviceWorker.getRegistration();
+
+                  return {
+                    controller: Boolean(
+                      navigator.serviceWorker.controller
+                    ),
+                    activeState:
+                      registration?.active?.state ?? null,
+                    scope: registration?.scope ?? null
+                  };
+                });
+
+                if (
+                  state.controller &&
+                  state.activeState === "activated"
+                ) {
+                  return state;
+                }
+              } catch (error) {
+                const message = String(error);
+
+                if (
+                  !message.includes("Execution context was destroyed") &&
+                  !message.includes("navigation")
+                ) {
+                  throw error;
+                }
+
+                console.log(
+                  "La página navegó durante la activación; reintentando..."
+                );
+              }
+
+              await new Promise(resolve => setTimeout(resolve, 1000));
+            }
+
+            return null;
+          }
+
+          let state = await esperarServiceWorker();
+
+          if (!state) {
+            console.log(
+              "El Service Worker aún no controla la página; recargando."
+            );
+
+            await page.reload({
+              waitUntil: "domcontentloaded",
+              timeout: 180000
+            });
+
+            state = await esperarServiceWorker();
+          }
+
+          if (!state) {
+            throw new Error(
+              "El Service Worker no tomó el control de la página"
+            );
+          }
+
+          console.log(`Service Worker: ${JSON.stringify(state)}`);
+          console.log(`Descargando mediante fetch(): ${fileUrl}`);
+
+          const response = await page.evaluate(async url => {
+            const result = await fetch(url, {
+              method: "GET",
+              cache: "no-store",
+              credentials: "omit"
+            });
+env:
+  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+steps:
+  - name: Checkout repo
+    uses: actions/checkout@v5
+    with:
+      persist-credentials: true
+      
+  - name: Preparar Node.js
+    uses: actions/setup-node@v4
+    with:
+      node-version: 22
+
+  - name: Instalar Playwright y Chromium
+    shell: bash
+    run: |
+      set -euo pipefail
+      npm install --no-save --no-package-lock playwright
+      npx playwright install --with-deps chromium
+
+  - name: Descargar archivo original mediante navegador
+    shell: bash
+    run: |
+      set -euo pipefail
+      node <<'JS'
+      const { chromium } = require("playwright");
+      const fs = require("fs");
+
+      const baseUrl =
+        "https://k2k4r8lm8tkmuxbc8lkmq1in3v0oya1p6pe9o5bu0hu30br5ko08k2gb" +
+        ".ipns.inbrowser.link";
+      const fileUrl = baseUrl + "/data/listas/lista_iptv.m3u";
+
+      (async () => {
+        const browser = await chromium.launch({ headless: true });
+
+        try {
+          const context = await browser.newContext({
+            locale: "es-ES",
+            viewport: { width: 1280, height: 720 }
+          });
+
+          context.on("serviceworker", worker => {
+            console.log(`Service Worker detectado: ${worker.url()}`);
+          });
+
+          const page = await context.newPage();
+
+          console.log(`Abriendo gateway: ${baseUrl}`);
+          await page.goto(baseUrl, {
+            waitUntil: "domcontentloaded",
+            timeout: 180000
+          });
+
+        async function esperarServiceWorker(timeoutMs = 120000) {
+            const deadline = Date.now() + timeoutMs;
+
+            while (Date.now() < deadline) {
+              try {
+                const state = await page.evaluate(async () => {
+                  const registration =
+                    await navigator.serviceWorker.getRegistration();
+
+                  return {
+                    controller: Boolean(
+                      navigator.serviceWorker.controller
+                    ),
+                    activeState:
+                      registration?.active?.state ?? null,
+                    scope: registration?.scope ?? null
+                  };
+                });
+
+                if (
+                  state.controller &&
+                  state.activeState === "activated"
+                ) {
+                  return state;
+                }
+              } catch (error) {
+                const message = String(error);
+
+                if (
+                  !message.includes("Execution context was destroyed") &&
+                  !message.includes("navigation")
+                ) {
+                  throw error;
+                }
+
+                console.log(
+                  "La página navegó durante la activación; reintentando..."
+                );
+              }
+
+              await new Promise(resolve => setTimeout(resolve, 1000));
+            }
+
+            return null;
+          }
+
+          let state = await esperarServiceWorker();
+
+          if (!state) {
+            console.log(
+              "El Service Worker aún no controla la página; recargando."
+            );
+
+            await page.reload({
+              waitUntil: "domcontentloaded",
+              timeout: 180000
+            });
+
+            state = await esperarServiceWorker();
+          }
+
+          if (!state) {
+            throw new Error(
+              "El Service Worker no tomó el control de la página"
+            );
+          }
+
+          console.log(`Service Worker: ${JSON.stringify(state)}`);
+          console.log(`Descargando mediante fetch(): ${fileUrl}`);
+
+          const response = await page.evaluate(async url => {
+            const result = await fetch(url, {
+              method: "GET",
+              cache: "no-store",
+              credentials: "omit"
+            });
+
+return {
+              status: result.status,
+              statusText: result.statusText,
+              contentType: result.headers.get("content-type"),
+              url: result.url,
+              data: Array.from(
+                new Uint8Array(await result.arrayBuffer())
+              )
+            };
+          }, fileUrl);
+
+          console.log(`HTTP final: ${response.status}`);
+          console.log(`Content-Type: ${response.contentType}`);
+          console.log(`URL final: ${response.url}`);
+
+          if (response.status < 200 || response.status >= 300) {
+            throw new Error(
+              `La descarga terminó con HTTP ${response.status} ` +
+              response.statusText
+            );
+          }
+
+          const body = Buffer.from(response.data);
+
+          if (!body.length) {
+            throw new Error("El archivo descargado está vacío");
+          }
+
+          const normalizedStart = body.toString("utf8")
+            .replace(/^\uFEFF/, "")
+            .trimStart();
+
+          // La primera línea puede incluir atributos como url-tvg.
+          if (!normalizedStart.startsWith("#EXTM3U")) {
+            console.log(
+              "Primeros bytes recibidos:\n" +
+              body.toString("utf8", 0, 500)
+            );
+            throw new Error(
+              "La respuesta no parece una lista M3U válida"
+            );
+          }
+
+          fs.writeFileSync("lista_original.m3u", body);
+          console.log(
+            shell: bash
+    run: |
+      set -euo pipefail
+      node          );
+        } finally {
+          await browser.close();
+        }
+      })().catch(error => {
+        console.error(error);
+        process.exitCode = 1;
+      });
+      JS
+
+  - name: Crear variantes de la lista
+    shell: bash
+    run: |
+      set -euo pipefail
+
+      cp lista_original.m3u lista_origen.m3u
+
+      sed \
+        's#http://127.0.0.1:6878#https://acexy.carcedo.com.es#g' \
+        lista_original.m3u > ch_lan.m3u
+
+      echo "Creada la variante de la lista."
+
+  - name: Verificar si hay cambios
+    id: verify_diff
+    shell: bash
+    run: |
+      set -euo pipefail
+
+      git add -- \
+        lista_origen.m3u \
+        ch_lan.m3u \
+        
+      if git diff --staged --quiet; then
+        echo "changed=false" >> "$GITHUB_OUTPUT"
+        echo "Sin cambios en las listas"
+      else
+        echo "changed=true" >> "$GITHUB_OUTPUT"
+        echo "Hay cambios en las listas"
+      fi
+
+  - name: Commit y push de las listas
+    if: steps.verify_diff.outputs.changed == 'true'
+    shell: bash
+    run: |
+      set -euo pipefail
+
+      git config user.email \
+        "41898282+github-actions[bot]@users.noreply.github.com"
+      git config user.name "github-actions[bot]"
+
+      git commit \
+        -m "🤖 Lista M3U - $(TZ=Europe/Madrid date +'%Y-%m-%d %H:%M:%S')"
+
+      git push
+
+
