@@ -45,8 +45,8 @@ jobs:
           const fs = require("fs");
 
           const baseUrl =
-            "https://tokyo.elcano-ipfs.workers.dev"
-          const fileUrl = baseUrl + "/k51qzi5uqu5dh5qej4b9wlcr5i6vhc7rcfkekhrxqek5c9lk6gdaiik820fecs/hashes_acestream.m3u";
+            "https://tokyo.elcano-ipfs.workers.dev/k51qzi5uqu5dh5qej4b9wlcr5i6vhc7rcfkekhrxqek5c9lk6gdaiik820fecs"
+          const fileUrl = baseUrl + "/hashes_acestream.m3u";
 
           (async () => {
             const browser = await chromium.launch({ headless: true });
