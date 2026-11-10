@@ -24,181 +24,48 @@ jobs:
         with:
           persist-credentials: true
 
-      - name: Preparar Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 22
-
-      - name: Instalar Playwright y Chromium
+      - name: Descargar archivo original directamente
         shell: bash
         run: |
           set -euo pipefail
-          npm install --no-save --no-package-lock playwright
-          npx playwright install --with-deps chromium
 
-      - name: Descargar archivo original mediante navegador
-        shell: bash
-        run: |
-          set -euo pipefail
-          node <<'JS'
-          const { chromium } = require("playwright");
-          const fs = require("fs");
-          const baseUrl = "http://neweraes.atwebpages.com";
-          const fileUrl = baseUrl + "/lista_iptv.m3u";
+          BASE_URL="http://neweraes.atwebpages.com"
+          FILE_URL="${BASE_URL}/lista_iptv.m3u"
 
-          (async () => {
-            const browser = await chromium.launch({ headless: true });
+          echo "Descargando lista desde: ${FILE_URL}"
 
-            try {
-              const context = await browser.newContext({
-                locale: "es-ES",
-                viewport: { width: 1280, height: 720 }
-              });
+          curl \
+            --fail \
+            --location \
+            --silent \
+            --show-error \
+            --retry 5 \
+            --retry-delay 5 \
+            --retry-all-errors \
+            --connect-timeout 30 \
+            --max-time 180 \
+            --header "Cache-Control: no-cache" \
+            --output lista_original.m3u \
+            "${FILE_URL}"
 
-              context.on("serviceworker", worker => {
-                console.log(`Service Worker detectado: ${worker.url()}`);
-              });
+          if [ ! -s lista_original.m3u ]; then
+            echo "ERROR: El archivo descargado está vacío."
+            exit 1
+          fi
 
-              const page = await context.newPage();
+          # Comprobar que la respuesta realmente es una lista M3U.
+          if ! head -c 500 lista_original.m3u \
+            | sed '1s/^\xEF\xBB\xBF//' \
+            | grep -q '^#EXTM3U'; then
 
-              console.log(`Abriendo gateway: ${baseUrl}`);
-              await page.goto(baseUrl, {
-                waitUntil: "domcontentloaded",
-                timeout: 180000
-              });
+            echo "ERROR: La respuesta no parece una lista M3U válida."
+            echo "Primeros bytes recibidos:"
+            head -c 500 lista_original.m3u
+            exit 1
+          fi
 
-              async function esperarServiceWorker(timeoutMs = 120000) {
-                const deadline = Date.now() + timeoutMs;
-
-                while (Date.now() < deadline) {
-                  try {
-                    const state = await page.evaluate(async () => {
-                      const registration =
-                        await navigator.serviceWorker.getRegistration();
-
-                      return {
-                        controller: Boolean(
-                          navigator.serviceWorker.controller
-                        ),
-                        activeState:
-                          registration?.active?.state ?? null,
-                        scope: registration?.scope ?? null
-                      };
-                    });
-
-                    if (
-                      state.controller &&
-                      state.activeState === "activated"
-                    ) {
-                      return state;
-                    }
-                  } catch (error) {
-                    const message = String(error);
-
-                    if (
-                      !message.includes("Execution context was destroyed") &&
-                      !message.includes("navigation")
-                    ) {
-                      throw error;
-                    }
-
-                    console.log(
-                      "La página navegó durante la activación; reintentando..."
-                    );
-                  }
-
-                  await new Promise(resolve => setTimeout(resolve, 1000));
-                }
-
-                return null;
-              }
-
-              let state = await esperarServiceWorker();
-
-              if (!state) {
-                console.log(
-                  "El Service Worker aún no controla la página; recargando."
-                );
-
-                await page.reload({
-                  waitUntil: "domcontentloaded",
-                  timeout: 180000
-                });
-
-                state = await esperarServiceWorker();
-              }
-
-              if (!state) {
-                throw new Error(
-                  "El Service Worker no tomó el control de la página"
-                );
-              }
-
-              console.log(`Service Worker: ${JSON.stringify(state)}`);
-              console.log(`Descargando mediante fetch(): ${fileUrl}`);
-
-              const response = await page.evaluate(async url => {
-                const result = await fetch(url, {
-                  method: "GET",
-                  cache: "no-store",
-                  credentials: "omit"
-                });
-
-                return {
-                  status: result.status,
-                  statusText: result.statusText,
-                  contentType: result.headers.get("content-type"),
-                  url: result.url,
-                  data: Array.from(
-                    new Uint8Array(await result.arrayBuffer())
-                  )
-                };
-              }, fileUrl);
-
-              console.log(`HTTP final: ${response.status}`);
-              console.log(`Content-Type: ${response.contentType}`);
-              console.log(`URL final: ${response.url}`);
-
-              if (response.status < 200 || response.status >= 300) {
-                throw new Error(
-                  `La descarga terminó con HTTP ${response.status} ` +
-                  response.statusText
-                );
-              }
-
-              const body = Buffer.from(response.data);
-
-              if (!body.length) {
-                throw new Error("El archivo descargado está vacío");
-              }
-
-              const normalizedStart = body.toString("utf8")
-                .replace(/^\uFEFF/, "")
-                .trimStart();
-
-              // La primera línea puede incluir atributos como url-tvg.
-              if (!normalizedStart.startsWith("#EXTM3U")) {
-                console.log(
-                  "Primeros bytes recibidos:\n" +
-                  body.toString("utf8", 0, 500)
-                );
-                throw new Error(
-                  "La respuesta no parece una lista M3U válida"
-                );
-              }
-
-              fs.writeFileSync("lista_original.m3u", body);
-              console.log(
-                `Archivo descargado correctamente: ${body.length} bytes`
-              );
-            } finally {
-              await browser.close();
-            }
-          })().catch(error => {
-            console.error(error);
-            process.exitCode = 1;
-          });
-          JS
+          echo "Descarga completada correctamente."
+          echo "Tamaño: $(wc -c < lista_original.m3u) bytes"
 
       - name: Crear variantes de la lista
         shell: bash
@@ -254,6 +121,7 @@ jobs:
 
           git config user.email \
             "41898282+github-actions[bot]@users.noreply.github.com"
+
           git config user.name "github-actions[bot]"
 
           git commit \
