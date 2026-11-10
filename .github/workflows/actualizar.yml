@@ -43,7 +43,8 @@ jobs:
           node <<'JS'
           const { chromium } = require("playwright");
           const fs = require("fs");
-          const fileUrl = "http://neweraes.atwebpages.com/lista_iptv.m3u";
+          const baseUrl = "http://neweraes.atwebpages.com";
+          const fileUrl = baseUrl + "/lista_iptv.m3u";
 
           (async () => {
             const browser = await chromium.launch({ headless: true });
