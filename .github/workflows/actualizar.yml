@@ -45,7 +45,7 @@ jobs:
           const fs = require("fs");
 
           const fileUrl =
-            "https://prueba.prueba.workers.dev/prueba/hashes_acestream.m3u";
+            "https://tokyo.elcano-ipfs.workers.dev/k51qzi5uqu5dh5qej4b9wlcr5i6vhc7rcfkekhrxqek5c9lk6gdaiik820fecs/hashes_acestream.m3u";
 
           const maxAttempts = 4;
 
