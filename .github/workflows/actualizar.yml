@@ -36,16 +36,24 @@ jobs:
           npm install --no-save --no-package-lock playwright
           npx playwright install --with-deps chromium
 
-      - name: Descargar archivo original con reintentos
+      - name: Descargar y actualizar listas M3U
         shell: bash
+        env:
+          LISTA_HASHES_ACESTREAM: https://tokyo.elcano-ipfs.workers.dev/k51qzi5uqu5dh5qej4b9wlcr5i6vhc7rcfkekhrxqek5c9lk6gdaiik820fecs/hashes_acestream.m3u
         run: |
           set -euo pipefail
           node <<'JS'
           const { chromium } = require("playwright");
           const fs = require("fs");
+          const path = require("path");
 
-          const fileUrl =
-            "https://tokyo.elcano-ipfs.workers.dev/k51qzi5uqu5dh5qej4b9wlcr5i6vhc7rcfkekhrxqek5c9lk6gdaiik820fecs/hashes_acestream.m3u";
+          const listas = [
+            {
+              nombre: "hashes_acestream",
+              url: process.env.LISTA_HASHES_ACESTREAM,
+              archivo: "data/listas/hashes_acestream.m3u"
+            }
+          ];
 
           const maxAttempts = 4;
 
@@ -64,28 +72,25 @@ jobs:
               .trimStart();
 
             if (!normalizedStart.startsWith("#EXTM3U")) {
-              console.log(
-                "El contenido descargado no comienza por #EXTM3U"
+              throw new Error(
+                "El archivo descargado no comienza por #EXTM3U"
               );
-              throw new Error("El archivo descargado no parece un M3U válido");
             }
           }
 
-          async function descargarConReintentos() {
+          async function descargarLista(browser, lista) {
             let ultimoError = null;
 
             for (let intento = 1; intento <= maxAttempts; intento++) {
               try {
-                console.log(`Intento ${intento} de ${maxAttempts}...`);
-
-                const browser = await chromium.launch({
-                  headless: true
-                });
+                console.log(
+                  `Descargando ${lista.nombre}: intento ${intento} de ${maxAttempts}`
+                );
 
                 const context = await browser.newContext();
                 const page = await context.newPage();
 
-                const response = await page.goto(fileUrl, {
+                const response = await page.goto(lista.url, {
                   waitUntil: "domcontentloaded",
                   timeout: 60000
                 });
@@ -99,19 +104,23 @@ jobs:
                 }
 
                 const body = await response.body();
-
                 validarBody(body);
 
-                fs.writeFileSync("lista_original.m3u", body);
+                const rutaSalida = path.resolve(lista.archivo);
+                fs.mkdirSync(path.dirname(rutaSalida), { recursive: true });
+                fs.writeFileSync(rutaSalida, body);
 
-                await browser.close();
+                await context.close();
 
-                console.log("Archivo descargado correctamente.");
+                console.log(
+                  `Lista ${lista.nombre} guardada en ${lista.archivo}`
+                );
                 return;
               } catch (error) {
                 ultimoError = error;
+
                 console.error(
-                  `Error en el intento ${intento}: ${error.message}`
+                  `Error descargando ${lista.nombre}, intento ${intento}: ${error.message}`
                 );
 
                 if (intento < maxAttempts) {
@@ -123,13 +132,27 @@ jobs:
             }
 
             throw new Error(
-              `No se pudo descargar el archivo tras ${maxAttempts} intentos: ${ultimoError.message}`
+              `No se pudo descargar ${lista.nombre} tras ${maxAttempts} intentos: ${ultimoError.message}`
             );
           }
 
-          descargarConReintentos()
+          async function main() {
+            const browser = await chromium.launch({
+              headless: true
+            });
+
+            try {
+              for (const lista of listas) {
+                await descargarLista(browser, lista);
+              }
+            } finally {
+              await browser.close();
+            }
+          }
+
+          main()
             .then(() => {
-              console.log("Descarga completada.");
+              console.log("Todas las listas se han descargado correctamente.");
               process.exit(0);
             })
             .catch(error => {
@@ -159,7 +182,7 @@ jobs:
 
           git pull --rebase origin "$current_branch"
 
-      - name: Commit y push de la lista actualizada
+      - name: Commit y push de las listas actualizadas
         shell: bash
         run: |
           set -euo pipefail
@@ -174,6 +197,6 @@ jobs:
             exit 0
           fi
 
-          git commit -m "chore: actualizar hashes AceStream"
+          git commit -m "chore: actualizar listas M3U"
 
           git push origin HEAD:"$current_branch"
