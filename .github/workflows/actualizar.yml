@@ -69,7 +69,8 @@ jobs:
         run: |
           set -euo pipefail
 
-          FILE_URL="https://ipfs2.bytokyo.dpdns.org/k51qzi5uqu5di462t7j4vu4akwfhvtjhy88qbupktvoacqfqe9uforjvhyi4wr/hashes.m3u"
+          FILE_URL="https://ipfs.bytokyo.dpdns.org/k51qzi5uqu5di462t7j4vu4akwfhvtjhy88qbupktvoacqfqe9uforjvhyi4wr/hashes.m3u"
+          REFERER_URL="https://ipfs.bytokyo.dpdns.org/"
 
           echo "Descargando segunda lista desde: ${FILE_URL}"
 
@@ -83,6 +84,9 @@ jobs:
             --retry-all-errors \
             --connect-timeout 30 \
             --max-time 180 \
+            --header "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36" \
+            --header "Referer: ${REFERER_URL}" \
+            --header "Accept: */*" \
             --header "Cache-Control: no-cache" \
             --output lista2.m3u \
             "${FILE_URL}"
