@@ -120,7 +120,7 @@ jobs:
 
           archivos = ["lista_original.m3u", "lista2.m3u"]
           categorias = defaultdict(list)
-          ids_vistos = set()
+          claves_vistas = set()
           duplicados = 0
           sin_id = 0
 
@@ -148,20 +148,15 @@ jobs:
                   flags=re.IGNORECASE,
               )
 
-              if coincidencia_id:
-                  canal_id = coincidencia_id.group(1).strip()
+              if coincidencia_id and coincidencia_id.group(1).strip():
+                  canal_id = coincidencia_id.group(1).strip().casefold()
+                  clave = (categoria.casefold(), canal_id)
 
-                  if canal_id:
-                      # Ignora diferencias entre mayúsculas y minúsculas.
-                      clave_id = canal_id.casefold()
+                  if clave in claves_vistas:
+                      duplicados += 1
+                      return
 
-                      if clave_id in ids_vistos:
-                          duplicados += 1
-                          return
-
-                      ids_vistos.add(clave_id)
-                  else:
-                      sin_id += 1
+                  claves_vistas.add(clave)
               else:
                   sin_id += 1
 
@@ -198,9 +193,9 @@ jobs:
                   for entrada in categorias[categoria]:
                       salida.write(entrada + "\n")
 
-          print(f"Categorías encontradas: {len(categorias)}")
+          print(f"Categorías conservadas: {len(categorias)}")
           print(f"Canales escritos: {total_canales}")
-          print(f"Entradas duplicadas omitidas por tvg-id: {duplicados}")
+          print(f"Duplicados omitidos en la misma categoría: {duplicados}")
           print(f"Entradas sin tvg-id conservadas: {sin_id}")
           PY
 
