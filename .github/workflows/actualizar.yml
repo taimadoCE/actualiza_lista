@@ -3,7 +3,7 @@ name: Actualizar listas M3U
 on:
   schedule:
     - cron: "7,37 9-21 * * *"
-      # Nota: GitHub Actions usa UTC; `timezone` no forma parte de la configuración estándar.
+      # GitHub Actions usa UTC; `timezone` no forma parte de la configuración estándar.
   workflow_dispatch:
 
 permissions:
@@ -24,47 +24,153 @@ jobs:
         with:
           persist-credentials: true
 
-      - name: Descargar archivo original directamente
+      - name: Descargar las dos listas
         shell: bash
         run: |
           set -euo pipefail
 
-          BASE_URL="http://neweraes.atwebpages.com"
-          FILE_URL="${BASE_URL}/lista_iptv.m3u"
+          URL_PRIMERA="http://neweraes.atwebpages.com/lista_iptv.m3u"
+          URL_SEGUNDA="https://ipfs.bytokyo.dpdns.org/k51qzi5uqu5dh5qej4b9wlcr5i6vhc7rcfkekhrxqek5c9lk6gdaiik820fecs/hashes.m3u"
 
-          echo "Descargando lista desde: ${FILE_URL}"
+          descargar_y_validar() {
+            local nombre="$1"
+            local url="$2"
+            local archivo="lista_${nombre}.m3u"
 
-          curl \
-            --fail \
-            --location \
-            --silent \
-            --show-error \
-            --retry 5 \
-            --retry-delay 5 \
-            --retry-all-errors \
-            --connect-timeout 30 \
-            --max-time 180 \
-            --header "Cache-Control: no-cache" \
-            --output lista_original.m3u \
-            "${FILE_URL}"
+            echo "Descargando lista ${nombre}: ${url}"
+
+            curl \
+              --fail \
+              --location \
+              --silent \
+              --show-error \
+              --retry 5 \
+              --retry-delay 5 \
+              --retry-all-errors \
+              --connect-timeout 30 \
+              --max-time 180 \
+              --header "Cache-Control: no-cache" \
+              --output "${archivo}" \
+              "${url}"
+
+            if [ ! -s "${archivo}" ]; then
+              echo "ERROR: ${archivo} está vacío."
+              exit 1
+            fi
+
+            if ! head -c 500 "${archivo}" \
+              | sed '1s/^\xEF\xBB\xBF//' \
+              | grep -q '^#EXTM3U'; then
+              echo "ERROR: ${archivo} no parece una lista M3U válida."
+              echo "Primeros bytes recibidos:"
+              head -c 500 "${archivo}"
+              exit 1
+            fi
+
+            echo "Descargada y validada: ${archivo} ($(wc -c < "${archivo}") bytes)"
+          }
+
+          descargar_y_validar "primera" "${URL_PRIMERA}"
+          descargar_y_validar "segunda" "${URL_SEGUNDA}"
+
+      - name: Fusionar listas por categoría y eliminar duplicados
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          python3 - <<'PY'
+          from collections import defaultdict
+          from pathlib import Path
+          import re
+
+          def leer_lista(ruta):
+              texto = Path(ruta).read_text(
+                  encoding="utf-8-sig",
+                  errors="replace",
+              )
+              entradas = []
+              bloque = []
+
+              for linea in texto.splitlines():
+                  linea = linea.strip()
+
+                  if not linea or linea == "#EXTM3U":
+                      continue
+
+                  if linea.startswith("#EXTINF:"):
+                      if bloque:
+                          entradas.append(bloque)
+                      bloque = [linea]
+                  elif bloque:
+                      bloque.append(linea)
+
+                      # Una entrada termina al encontrar su URL.
+                      # Las líneas de opciones que empiezan por # se conservan.
+                      if not linea.startswith("#"):
+                          entradas.append(bloque)
+                          bloque = []
+
+              if bloque:
+                  entradas.append(bloque)
+
+              return entradas
+
+          grupos = defaultdict(list)
+          urls_vistas = set()
+          duplicados = 0
+
+          # El orden importa: si una URL está en ambas listas, se conserva
+          # la entrada y la categoría de la primera.
+          for archivo in ("lista_primera.m3u", "lista_segunda.m3u"):
+              for entrada in leer_lista(archivo):
+                  url = next(
+                      (linea for linea in entrada if not linea.startswith("#")),
+                      None,
+                  )
+
+                  if not url:
+                      continue
+
+                  if url in urls_vistas:
+                      duplicados += 1
+                      continue
+
+                  urls_vistas.add(url)
+
+                  info = next(
+                      (linea for linea in entrada if linea.startswith("#EXTINF:")),
+                      "",
+                  )
+                  coincidencia = re.search(r'group-title="([^"]*)"', info)
+                  categoria = (
+                      coincidencia.group(1).strip()
+                      if coincidencia and coincidencia.group(1).strip()
+                      else "Sin categoría"
+                  )
+
+                  grupos[categoria].append(entrada)
+
+          if not grupos:
+              raise SystemExit("ERROR: No se encontraron entradas M3U para fusionar.")
+
+          with open("lista_original.m3u", "w", encoding="utf-8", newline="\n") as salida:
+              salida.write("#EXTM3U\n")
+
+              for categoria in sorted(grupos, key=str.casefold):
+                  for entrada in grupos[categoria]:
+                      salida.write("\n".join(entrada) + "\n")
+
+          print(f"Categorías: {len(grupos)}")
+          print(f"Canales únicos: {len(urls_vistas)}")
+          print(f"Duplicados eliminados: {duplicados}")
+          PY
 
           if [ ! -s lista_original.m3u ]; then
-            echo "ERROR: El archivo descargado está vacío."
+            echo "ERROR: La lista fusionada está vacía."
             exit 1
           fi
 
-          # Comprobar que la respuesta realmente es una lista M3U.
-          if ! head -c 500 lista_original.m3u \
-            | sed '1s/^\xEF\xBB\xBF//' \
-            | grep -q '^#EXTM3U'; then
-            echo "ERROR: La respuesta no parece una lista M3U válida."
-            echo "Primeros bytes recibidos:"
-            head -c 500 lista_original.m3u
-            exit 1
-          fi
-
-          echo "Descarga completada correctamente."
-          echo "Tamaño: $(wc -c < lista_original.m3u) bytes"
+          echo "Lista fusionada: $(wc -c < lista_original.m3u) bytes"
 
       - name: Crear variantes de la lista
         shell: bash
