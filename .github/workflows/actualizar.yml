@@ -23,87 +23,190 @@ jobs:
         uses: actions/checkout@v5
         with:
           persist-credentials: true
+          fetch-depth: 0
 
-      - name: Descargar archivo original directamente
+      - name: Preparar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Instalar Playwright y Chromium
         shell: bash
         run: |
           set -euo pipefail
+          npm install --no-save --no-package-lock playwright
+          npx playwright install --with-deps chromium
 
-          BASE_URL="http://neweraes.atwebpages.com"
-          FILE_URL="${BASE_URL}/lista_iptv.m3u"
+      - name: Descargar ambas listas con Playwright
+        shell: bash
+        run: |
+          set -euo pipefail
+          node <<'JS'
+          const { chromium } = require("playwright");
+          const fs = require("fs");
 
-          echo "Descargando lista desde: ${FILE_URL}"
+          const sources = [
+            {
+              name: "lista 1",
+              url: "https://ipfs.bytokyo.dpdns.org/k51qzi5uqu5dh5qej4b9wlcr5i6vhc7rcfkekhrxqek5c9lk6gdaiik820fecs/hashes.m3u",
+              file: "lista_1.m3u"
+            },
+            {
+              name: "lista 2",
+              url: "http://neweraes.atwebpages.com/lista_iptv.m3u",
+              file: "lista_2.m3u"
+            }
+          ];
 
-          curl \
-            --fail \
-            --location \
-            --silent \
-            --show-error \
-            --retry 5 \
-            --retry-delay 5 \
-            --retry-all-errors \
-            --connect-timeout 30 \
-            --max-time 180 \
-            --header "Cache-Control: no-cache" \
-            --output lista_original.m3u \
-            "${FILE_URL}"
+          function validarM3U(text, name) {
+            const normalized = text.replace(/^\uFEFF/, "").trimStart();
+            if (!normalized.startsWith("#EXTM3U")) {
+              throw new Error(`${name}: la respuesta no parece una lista M3U válida`);
+            }
+            return normalized;
+          }
 
-          if [ ! -s lista_original.m3u ]; then
-            echo "ERROR: El archivo descargado está vacío."
-            exit 1
-          fi
+          (async () => {
+            const browser = await chromium.launch({ headless: true });
+            try {
+              const request = await browser.newContext({
+                locale: "es-ES",
+                ignoreHTTPSErrors: false
+              });
 
-          # Comprobar que la respuesta realmente es una lista M3U.
-          if ! head -c 500 lista_original.m3u \
-            | sed '1s/^\xEF\xBB\xBF//' \
-            | grep -q '^#EXTM3U'; then
-            echo "ERROR: La respuesta no parece una lista M3U válida."
-            echo "Primeros bytes recibidos:"
-            head -c 500 lista_original.m3u
-            exit 1
-          fi
+              for (const source of sources) {
+                console.log(`Descargando ${source.name}: ${source.url}`);
+                const response = await request.request.get(source.url, {
+                  timeout: 180000,
+                  maxRedirects: 10
+                });
 
-          echo "Descarga completada correctamente."
-          echo "Tamaño: $(wc -c < lista_original.m3u) bytes"
+                if (!response.ok()) {
+                  throw new Error(
+                    `${source.name}: HTTP ${response.status()} ${response.statusText()}`
+                  );
+                }
+
+                const text = validarM3U(await response.text(), source.name);
+                fs.writeFileSync(source.file, text + "\n", "utf8");
+                console.log(`${source.file}: ${Buffer.byteLength(text)} bytes`);
+              }
+
+              await request.close();
+            } finally {
+              await browser.close();
+            }
+          })().catch(error => {
+            console.error(error);
+            process.exitCode = 1;
+          });
+          JS
+
+      - name: Fusionar por categorías y eliminar duplicados
+        shell: bash
+        run: |
+          set -euo pipefail
+          node <<'JS'
+          const fs = require("fs");
+
+          const files = ["lista_1.m3u", "lista_2.m3u"];
+          const entries = [];
+          const seen = new Set();
+
+          function attribute(line, name) {
+            const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+            const match = line.match(new RegExp(`(?:^|\\\\s)${escaped}="([^"]*)"`, "i"));
+            return match?.[1]?.trim() ?? "";
+          }
+
+          function normalize(value) {
+            return value
+              .normalize("NFD")
+              .replace(/[\\u0300-\\u036f]/g, "")
+              .toLowerCase()
+              .replace(/[^a-z0-9]+/g, " ")
+              .trim();
+          }
+
+          for (const file of files) {
+            const text = fs.readFileSync(file, "utf8").replace(/^\\uFEFF/, "");
+            const lines = text.split(/\\r?\\n/);
+            let extinf = null;
+
+            for (const rawLine of lines) {
+              const line = rawLine.trim();
+              if (!line) continue;
+
+              if (line.startsWith("#EXTINF:")) {
+                extinf = line;
+                continue;
+              }
+
+              if (line.startsWith("#")) continue;
+              if (!extinf) continue;
+
+              const category = attribute(extinf, "group-title");
+              const tvgId = attribute(extinf, "tvg-id");
+              const name = extinf.slice(extinf.lastIndexOf(",") + 1).trim();
+
+              // tvg-id identifica el canal entre categorías; si no existe,
+              // se usa nombre más categoría para evitar borrar canales distintos.
+              const key = tvgId
+                ? `id:${normalize(tvgId)}`
+                : `name:${normalize(name)}|category:${normalize(category)}`;
+
+              if (!seen.has(key)) {
+                seen.add(key);
+                entries.push(`${extinf}\n${line}`);
+              }
+
+              extinf = null;
+            }
+          }
+
+          if (!entries.length) {
+            throw new Error("No se encontraron canales válidos en las listas");
+          }
+
+          fs.writeFileSync(
+            "lista_original.m3u",
+            `#EXTM3U\n${entries.join("\n")}\n`,
+            "utf8"
+          );
+
+          console.log(`Lista fusionada: ${entries.length} canales únicos`);
+          JS
 
       - name: Crear variantes de la lista
         shell: bash
         run: |
           set -euo pipefail
-
           cp lista_original.m3u lista_origen.m3u
-
           sed \
             's#http://127.0.0.1:6878#https://acexy.taimado.duckdns.org#g' \
             lista_original.m3u > lista_modificada.m3u
-
           sed \
             's#127.0.0.1:6878#192.168.1.254:6878#g' \
             lista_original.m3u > lista_local.m3u
-
           sed \
             's#127.0.0.1:6878#100.83.12.86:6878#g' \
             lista_original.m3u > lista_tanix.m3u
-
           sed \
             's#http://127.0.0.1:6878#https://acexyce.taimado.duckdns.org#g' \
             lista_original.m3u > lista_modificada_ce.m3u
-
-          echo "Creadas las cinco variantes de la lista."
+          echo "Creadas las cinco variantes de la lista fusionada."
 
       - name: Verificar si hay cambios
         id: verify_diff
         shell: bash
         run: |
           set -euo pipefail
-
           git add -- \
             lista_origen.m3u \
             lista_modificada.m3u \
             lista_local.m3u \
             lista_tanix.m3u \
             lista_modificada_ce.m3u
-
           if git diff --cached --quiet; then
             echo "changed=false" >> "$GITHUB_OUTPUT"
             echo "Sin cambios en las listas."
@@ -112,17 +215,23 @@ jobs:
             echo "Hay cambios en las listas."
           fi
 
+      - name: Preparar rama antes del push
+        if: steps.verify_diff.outputs.changed == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          current_branch="$(git branch --show-current || echo "${GITHUB_REF_NAME:-main}")"
+          echo "current_branch=$current_branch" >> "$GITHUB_ENV"
+          git pull --rebase origin "$current_branch"
+
       - name: Commit y push de las listas
         if: steps.verify_diff.outputs.changed == 'true'
         shell: bash
         run: |
           set -euo pipefail
-
           git config user.email \
             "41898282+github-actions[bot]@users.noreply.github.com"
           git config user.name "github-actions[bot]"
-
           git commit \
             -m "🤖 Lista M3U - $(TZ=Europe/Madrid date +'%Y-%m-%d %H:%M:%S')"
-
-          git push
+          git push origin "HEAD:${current_branch}"
