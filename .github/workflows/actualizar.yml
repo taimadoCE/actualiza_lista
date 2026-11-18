@@ -38,8 +38,7 @@ jobs:
           import sys
           from pathlib import Path
 
-          ruta = Path(sys.argv[1])
-          contenido = ruta.read_bytes()[:500]
+          contenido = Path(sys.argv[1]).read_bytes()[:500]
           contenido = contenido.removeprefix(b"\xef\xbb\xbf")
           if not contenido.lstrip().startswith(b"#EXTM3U"):
               sys.exit(1)
@@ -49,45 +48,70 @@ jobs:
           descargar_y_validar() {
             local url="$1"
             local archivo="$2"
+            local codigo_http
+            local estado_curl=0
+            local cabeceras="/tmp/respuesta-cabeceras.txt"
+            local cuerpo="/tmp/respuesta-cuerpo.txt"
 
+            rm -f "${archivo}" "${cabeceras}" "${cuerpo}"
             echo "Descargando: ${url}"
 
-            if ! curl \
-              --fail \
+            codigo_http=$(curl \
               --location \
               --silent \
               --show-error \
               --user-agent "Mozilla/5.0" \
-              --retry 5 \
-              --retry-delay 5 \
+              --retry 3 \
+              --retry-delay 3 \
               --connect-timeout 30 \
               --max-time 180 \
               --header "Cache-Control: no-cache" \
-              --output "${archivo}" \
-              "${url}"; then
-              rm -f "${archivo}"
-              return 1
+              --dump-header "${cabeceras}" \
+              --output "${cuerpo}" \
+              --write-out "%{http_code}" \
+              "${url}") || estado_curl=$?
+
+            if [ "${estado_curl}" -eq 0 ] \
+              && [[ "${codigo_http}" =~ ^2[0-9][0-9]$ ]] \
+              && [ -s "${cuerpo}" ] \
+              && validar_m3u "${cuerpo}"; then
+              mv "${cuerpo}" "${archivo}"
+              echo "Descargada y validada: ${archivo} ($(wc -c < "${archivo}") bytes)"
+              return 0
             fi
 
-            if [ ! -s "${archivo}" ] || ! validar_m3u "${archivo}"; then
-              echo "ERROR: ${archivo} está vacío o no parece una lista M3U válida."
-              rm -f "${archivo}"
-              return 1
+            echo "No se pudo descargar una M3U válida."
+            echo "Código HTTP: ${codigo_http:-desconocido}"
+            echo "Código de salida de curl: ${estado_curl}"
+
+            if [ -s "${cabeceras}" ]; then
+              echo "Cabeceras de respuesta:"
+              cat "${cabeceras}"
             fi
 
-            echo "Descargada y validada: ${archivo} ($(wc -c < "${archivo}") bytes)"
+            if [ -s "${cuerpo}" ]; then
+              echo "Primeros 1000 bytes del cuerpo de respuesta:"
+              head -c 1000 "${cuerpo}" || true
+              echo
+            fi
+
+            rm -f "${archivo}" "${cuerpo}"
+            return 1
           }
 
           # Descargar la primera lista.
-          descargar_y_validar "${URL_PRIMERA}" "${ARCHIVO_PRIMERA}"
+          if ! descargar_y_validar "${URL_PRIMERA}" "${ARCHIVO_PRIMERA}"; then
+            echo "ERROR: No se pudo descargar la primera lista."
+            exit 1
+          fi
 
-          # Probar gateways alternativos para el nombre IPNS y el archivo.
+          # Probar la URL original y luego un gateway alternativo.
           NOMBRE_IPNS="k51qzi5uqu5dh5qej4b9wlcr5i6vhc7rcfkekhrxqek5c9lk6gdaiik820fecs"
           RUTA_ARCHIVO="hashes.m3u"
 
           URLS_SEGUNDA=(
+            "https://ipfs.bytokyo.dpdns.org/${NOMBRE_IPNS}/${RUTA_ARCHIVO}"
             "https://dweb.link/ipns/${NOMBRE_IPNS}/${RUTA_ARCHIVO}"
-            "https://ipfs.io/ipns/${NOMBRE_IPNS}/${RUTA_ARCHIVO}"
           )
 
           descargada=false
@@ -99,13 +123,11 @@ jobs:
               descargada=true
               break
             fi
-
-            echo "No se pudo descargar una M3U válida desde este gateway."
           done
 
           if [ "${descargada}" != true ]; then
             echo "ERROR: No se pudo descargar la segunda lista desde los gateways probados."
-            echo "Comprueba que el archivo sea público y que el nombre IPNS y la ruta sean correctos."
+            echo "Comprueba el diagnóstico anterior y solicita al proveedor una URL accesible desde GitHub Actions."
             exit 1
           fi
 
