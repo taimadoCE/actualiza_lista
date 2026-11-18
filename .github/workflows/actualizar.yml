@@ -30,14 +30,27 @@ jobs:
           set -euo pipefail
 
           URL_PRIMERA="http://neweraes.atwebpages.com/lista_iptv.m3u"
-          URL_SEGUNDA="https://ipfs.bytokyo.dpdns.org/k51qzi5uqu5dh5qej4b9wlcr5i6vhc7rcfkekhrxqek5c9lk6gdaiik820fecs/hashes.m3u"
+          ARCHIVO_PRIMERA="lista_primera.m3u"
+          ARCHIVO_SEGUNDA="lista_segunda.m3u"
+
+          validar_m3u() {
+            python3 -c '
+          import sys
+          from pathlib import Path
+
+          ruta = Path(sys.argv[1])
+          contenido = ruta.read_bytes()[:500]
+          contenido = contenido.removeprefix(b"\xef\xbb\xbf")
+          if not contenido.lstrip().startswith(b"#EXTM3U"):
+              sys.exit(1)
+          ' "$1"
+          }
 
           descargar_y_validar() {
-            local nombre="$1"
-            local url="$2"
-            local archivo="lista_${nombre}.m3u"
+            local url="$1"
+            local archivo="$2"
 
-            echo "Descargando lista ${nombre}: ${url}"
+            echo "Descargando: ${url}"
 
             if ! curl \
               --fail \
@@ -52,30 +65,49 @@ jobs:
               --header "Cache-Control: no-cache" \
               --output "${archivo}" \
               "${url}"; then
-              echo "ERROR: No se pudo descargar la lista ${nombre}."
-              echo "El servidor puede estar rechazando la solicitud o la URL puede no estar disponible."
-              exit 1
+              rm -f "${archivo}"
+              return 1
             fi
 
-            if [ ! -s "${archivo}" ]; then
-              echo "ERROR: ${archivo} está vacío."
-              exit 1
-            fi
-
-            if ! head -c 500 "${archivo}" \
-              | sed '1s/^\xEF\xBB\xBF//' \
-              | grep -q '^#EXTM3U'; then
-              echo "ERROR: ${archivo} no parece una lista M3U válida."
-              echo "Primeros bytes recibidos:"
-              head -c 500 "${archivo}"
-              exit 1
+            if [ ! -s "${archivo}" ] || ! validar_m3u "${archivo}"; then
+              echo "ERROR: ${archivo} está vacío o no parece una lista M3U válida."
+              rm -f "${archivo}"
+              return 1
             fi
 
             echo "Descargada y validada: ${archivo} ($(wc -c < "${archivo}") bytes)"
           }
 
-          descargar_y_validar "primera" "${URL_PRIMERA}"
-          descargar_y_validar "segunda" "${URL_SEGUNDA}"
+          # Descargar la primera lista.
+          descargar_y_validar "${URL_PRIMERA}" "${ARCHIVO_PRIMERA}"
+
+          # Probar gateways alternativos para el nombre IPNS y el archivo.
+          NOMBRE_IPNS="k51qzi5uqu5dh5qej4b9wlcr5i6vhc7rcfkekhrxqek5c9lk6gdaiik820fecs"
+          RUTA_ARCHIVO="hashes.m3u"
+
+          URLS_SEGUNDA=(
+            "https://dweb.link/ipns/${NOMBRE_IPNS}/${RUTA_ARCHIVO}"
+            "https://ipfs.io/ipns/${NOMBRE_IPNS}/${RUTA_ARCHIVO}"
+          )
+
+          descargada=false
+
+          for url in "${URLS_SEGUNDA[@]}"; do
+            echo "Probando gateway para la segunda lista: ${url}"
+
+            if descargar_y_validar "${url}" "${ARCHIVO_SEGUNDA}"; then
+              descargada=true
+              break
+            fi
+
+            echo "No se pudo descargar una M3U válida desde este gateway."
+          done
+
+          if [ "${descargada}" != true ]; then
+            echo "ERROR: No se pudo descargar la segunda lista desde los gateways probados."
+            echo "Comprueba que el archivo sea público y que el nombre IPNS y la ruta sean correctos."
+            exit 1
+          fi
 
       - name: Fusionar listas por categoría y eliminar duplicados
         shell: bash
@@ -109,7 +141,7 @@ jobs:
                   elif bloque:
                       bloque.append(linea)
 
-                      # La entrada termina al encontrar la URL.
+                      # La entrada termina al encontrar su URL.
                       # Se conservan líneas intermedias como #EXTVLCOPT.
                       if not linea.startswith("#"):
                           entradas.append(bloque)
@@ -124,16 +156,11 @@ jobs:
           urls_vistas = set()
           duplicados = 0
 
-          # Se procesa primero la lista principal.
-          # Si una URL aparece en ambas, se conserva la entrada de la primera.
+          # La primera lista tiene prioridad si una URL aparece en ambas.
           for archivo in ("lista_primera.m3u", "lista_segunda.m3u"):
               for entrada in leer_lista(archivo):
                   url = next(
-                      (
-                          linea
-                          for linea in entrada
-                          if not linea.startswith("#")
-                      ),
+                      (linea for linea in entrada if not linea.startswith("#")),
                       None,
                   )
 
@@ -147,11 +174,7 @@ jobs:
                   urls_vistas.add(url)
 
                   info = next(
-                      (
-                          linea
-                          for linea in entrada
-                          if linea.startswith("#EXTINF:")
-                      ),
+                      (linea for linea in entrada if linea.startswith("#EXTINF:")),
                       "",
                   )
                   coincidencia = re.search(r'group-title="([^"]*)"', info)
@@ -165,9 +188,7 @@ jobs:
                   grupos[categoria].append(entrada)
 
           if not grupos:
-              raise SystemExit(
-                  "ERROR: No se encontraron entradas M3U para fusionar."
-              )
+              raise SystemExit("ERROR: No se encontraron entradas M3U para fusionar.")
 
           with open(
               "lista_original.m3u",
