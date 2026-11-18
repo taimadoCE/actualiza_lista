@@ -39,19 +39,23 @@ jobs:
 
             echo "Descargando lista ${nombre}: ${url}"
 
-            curl \
+            if ! curl \
               --fail \
               --location \
               --silent \
               --show-error \
+              --user-agent "Mozilla/5.0" \
               --retry 5 \
               --retry-delay 5 \
-              --retry-all-errors \
               --connect-timeout 30 \
               --max-time 180 \
               --header "Cache-Control: no-cache" \
               --output "${archivo}" \
-              "${url}"
+              "${url}"; then
+              echo "ERROR: No se pudo descargar la lista ${nombre}."
+              echo "El servidor puede estar rechazando la solicitud o la URL puede no estar disponible."
+              exit 1
+            fi
 
             if [ ! -s "${archivo}" ]; then
               echo "ERROR: ${archivo} está vacío."
@@ -88,6 +92,7 @@ jobs:
                   encoding="utf-8-sig",
                   errors="replace",
               )
+
               entradas = []
               bloque = []
 
@@ -104,8 +109,8 @@ jobs:
                   elif bloque:
                       bloque.append(linea)
 
-                      # Una entrada termina al encontrar su URL.
-                      # Las líneas de opciones que empiezan por # se conservan.
+                      # La entrada termina al encontrar la URL.
+                      # Se conservan líneas intermedias como #EXTVLCOPT.
                       if not linea.startswith("#"):
                           entradas.append(bloque)
                           bloque = []
@@ -119,12 +124,16 @@ jobs:
           urls_vistas = set()
           duplicados = 0
 
-          # El orden importa: si una URL está en ambas listas, se conserva
-          # la entrada y la categoría de la primera.
+          # Se procesa primero la lista principal.
+          # Si una URL aparece en ambas, se conserva la entrada de la primera.
           for archivo in ("lista_primera.m3u", "lista_segunda.m3u"):
               for entrada in leer_lista(archivo):
                   url = next(
-                      (linea for linea in entrada if not linea.startswith("#")),
+                      (
+                          linea
+                          for linea in entrada
+                          if not linea.startswith("#")
+                      ),
                       None,
                   )
 
@@ -138,10 +147,15 @@ jobs:
                   urls_vistas.add(url)
 
                   info = next(
-                      (linea for linea in entrada if linea.startswith("#EXTINF:")),
+                      (
+                          linea
+                          for linea in entrada
+                          if linea.startswith("#EXTINF:")
+                      ),
                       "",
                   )
                   coincidencia = re.search(r'group-title="([^"]*)"', info)
+
                   categoria = (
                       coincidencia.group(1).strip()
                       if coincidencia and coincidencia.group(1).strip()
@@ -151,9 +165,16 @@ jobs:
                   grupos[categoria].append(entrada)
 
           if not grupos:
-              raise SystemExit("ERROR: No se encontraron entradas M3U para fusionar.")
+              raise SystemExit(
+                  "ERROR: No se encontraron entradas M3U para fusionar."
+              )
 
-          with open("lista_original.m3u", "w", encoding="utf-8", newline="\n") as salida:
+          with open(
+              "lista_original.m3u",
+              "w",
+              encoding="utf-8",
+              newline="\n",
+          ) as salida:
               salida.write("#EXTM3U\n")
 
               for categoria in sorted(grupos, key=str.casefold):
