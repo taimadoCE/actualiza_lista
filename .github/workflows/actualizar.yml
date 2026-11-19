@@ -220,25 +220,15 @@ jobs:
               lines = [line.strip() for line in text.splitlines()]
               entries = []
 
-              pending = {
-                  "extinf": None,
-                  "extra_lines": [],
-                  "groups": [],
-              }
+              current_groups = []
+              pending_extinf = None
+              pending_extra_lines = []
 
               for line in lines:
                   if not line:
                       continue
 
                   if line.startswith("#EXTM3U"):
-                      continue
-
-                  if line.startswith("#EXTINF"):
-                      pending = {
-                          "extinf": line,
-                          "extra_lines": [],
-                          "groups": [],
-                      }
                       continue
 
                   if line.startswith("#EXTGRP"):
@@ -253,55 +243,55 @@ jobs:
                           group_title = group_value
 
                       if group_title:
-                          pending["groups"].extend(
+                          current_groups = [
                               group.strip()
                               for group in group_title.split(";")
                               if group.strip()
-                          )
+                          ]
 
-                      pending["extra_lines"].append(line)
+                      continue
+
+                  if line.startswith("#EXTINF"):
+                      pending_extinf = line
+                      pending_extra_lines = []
                       continue
 
                   if line.startswith("#"):
-                      if pending["extinf"]:
-                          pending["extra_lines"].append(line)
+                      if pending_extinf:
+                          pending_extra_lines.append(line)
 
                       continue
 
-                  if pending["extinf"]:
-                      groups = pending["groups"][:]
+                  if pending_extinf:
+                      groups = current_groups[:]
 
-                      if not groups:
-                          group_title = extract_attr(
-                              pending["extinf"],
-                              "group-title",
-                          )
+                      extinf_group = extract_attr(
+                          pending_extinf,
+                          "group-title",
+                      )
 
-                          if group_title:
-                              groups.extend(
-                                  group.strip()
-                                  for group in group_title.split(";")
-                                  if group.strip()
-                              )
+                      if extinf_group:
+                          groups = [
+                              group.strip()
+                              for group in extinf_group.split(";")
+                              if group.strip()
+                          ]
 
                       if not groups:
                           groups = ["OTROS"]
 
                       entries.append(
                           {
-                              "extinf": pending["extinf"],
-                              "extra_lines": pending["extra_lines"][:],
+                              "extinf": pending_extinf,
+                              "extra_lines": pending_extra_lines[:],
                               "groups": groups,
                               "url": line,
                               "url_key": normalize_url(line),
                           }
                       )
 
-                      pending = {
-                          "extinf": None,
-                          "extra_lines": [],
-                          "groups": [],
-                      }
+                      pending_extinf = None
+                      pending_extra_lines = []
 
               return entries
 
@@ -356,21 +346,18 @@ jobs:
               }
           )
 
+          print(f"Grupos con canales: {len(groups_found)}")
+          print(f"Grupos esperados: {len(GROUP_ORDER)}")
+
           missing_groups = [
               group
               for group in GROUP_ORDER
               if group not in groups_found
           ]
 
-          print(
-              f"Grupos detectados en la lista unificada: "
-              f"{len(groups_found)}"
-          )
-          print(f"Grupos esperados: {len(GROUP_ORDER)}")
-
           if missing_groups:
               print(
-                  "AVISO: Estos grupos esperados no tienen ningún canal:"
+                  "AVISO: Estos grupos se incluirán sin canales:"
               )
 
               for group in missing_groups:
@@ -379,15 +366,6 @@ jobs:
           output = ["#EXTM3U"]
 
           for group in GROUP_ORDER:
-              group_entries = [
-                  entry
-                  for entry in merged
-                  if group in entry["groups"]
-              ]
-
-              if not group_entries:
-                  continue
-
               logo = GROUP_LOGOS.get(group, "")
               group_line = f'#EXTGRP: group-title="{group}"'
 
@@ -395,6 +373,12 @@ jobs:
                   group_line += f' group-logo="{logo}"'
 
               output.append(group_line)
+
+              group_entries = [
+                  entry
+                  for entry in merged
+                  if group in entry["groups"]
+              ]
 
               for entry in group_entries:
                   output.extend(entry["extra_lines"])
