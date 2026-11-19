@@ -1,84 +1,85 @@
 name: Actualizar listas M3U
 
-              encoding="utf-8",
-              newline="\n",
-          ) as salida:
-              salida.write("#EXTM3U\n")
+encoding = "utf-8"
+newline = "\n"
 
-              for categoria in sorted(categorias, key=str.casefold):
-                  for entrada in categorias[categoria]:
-                      salida.write(entrada + "\n")
+with open("lista_fusionada.m3u", "w", encoding=encoding, newline=newline) as salida:
+    salida.write("#EXTM3U\n")
 
-          print(f"Categorías encontradas: {len(categorias)}")
-          print(f"Canales escritos: {total_canales}")
-          print(f"Entradas duplicadas omitidas por tvg-id: {duplicados}")
-          print(f"Entradas sin tvg-id conservadas: {sin_id}")
-          PY
+    for categoria in sorted(categorias, key=str.casefold):
+        for entrada in categorias[categoria]:
+            salida.write(entrada + "\n")
 
-          if [ ! -s lista_fusionada.m3u ]; then
-            echo "ERROR: No se pudo generar la lista fusionada."
-            exit 1
-          fi
+print(f"Categorías encontradas: {len(categorias)}")
+print(f"Canales escritos: {total_canales}")
+print(f"Entradas duplicadas omitidas por tvg-id: {duplicados}")
+print(f"Entradas sin tvg-id conservadas: {sin_id}")
+PY
 
-          echo "Lista fusionada creada correctamente."
+if [ ! -s lista_fusionada.m3u ]; then
+  echo "ERROR: No se pudo generar la lista fusionada."
+  exit 1
+fi
 
-      - name: Crear variantes de la lista
-        shell: bash
-        run: |
-          set -euo pipefail
+echo "Lista fusionada creada correctamente."
 
-          cp lista_fusionada.m3u lista_origen.m3u
+- name: Crear variantes de la lista
+  shell: bash
+  run: |
+    set -euo pipefail
 
-          sed \
-            's#http://127.0.0.1:6878#https://acexy.taimado.duckdns.org#g' \
-            lista_fusionada.m3u > lista_modificada.m3u
+    cp lista_fusionada.m3u lista_origen.m3u
 
-          sed \
-            's#127.0.0.1:6878#192.168.1.254:6878#g' \
-            lista_fusionada.m3u > lista_local.m3u
+    sed \
+      's#http://127.0.0.1:6878#https://acexy.taimado.duckdns.org#g' \
+      lista_fusionada.m3u > lista_modificada.m3u
 
-          sed \
-            's#127.0.0.1:6878#100.83.12.86:6878#g' \
-            lista_fusionada.m3u > lista_tanix.m3u
+    sed \
+      's#127.0.0.1:6878#192.168.1.254:6878#g' \
+      lista_fusionada.m3u > lista_local.m3u
 
-          sed \
-            's#http://127.0.0.1:6878#https://acexyce.taimado.duckdns.org#g' \
-            lista_fusionada.m3u > lista_modificada_ce.m3u
+    sed \
+      's#127.0.0.1:6878#100.83.12.86:6878#g' \
+      lista_fusionada.m3u > lista_tanix.m3u
 
-          echo "Creadas las cinco variantes de la lista."
+    sed \
+      's#http://127.0.0.1:6878#https://acexyce.taimado.duckdns.org#g' \
+      lista_fusionada.m3u > lista_modificada_ce.m3u
 
-      - name: Verificar si hay cambios
-        id: verify_diff
-        shell: bash
-        run: |
-          set -euo pipefail
+    echo "Creadas las cinco variantes de la lista."
 
-          git add -- \
-            lista_origen.m3u \
-            lista_modificada.m3u \
-            lista_local.m3u \
-            lista_tanix.m3u \
-            lista_modificada_ce.m3u
+- name: Verificar si hay cambios
+  id: verify_diff
+  shell: bash
+  run: |
+    set -euo pipefail
 
-          if git diff --cached --quiet; then
-            echo "changed=false" >> "$GITHUB_OUTPUT"
-            echo "Sin cambios en las listas."
-          else
-            echo "changed=true" >> "$GITHUB_OUTPUT"
-            echo "Hay cambios en las listas."
-          fi
+    git add -- \
+      lista_origen.m3u \
+      lista_modificada.m3u \
+      lista_local.m3u \
+      lista_tanix.m3u \
+      lista_modificada_ce.m3u
 
-      - name: Commit y push de las listas
-        if: steps.verify_diff.outputs.changed == 'true'
-        shell: bash
-        run: |
-          set -euo pipefail
+    if git diff --cached --quiet; then
+      echo "changed=false" >> "$GITHUB_OUTPUT"
+      echo "Sin cambios en las listas."
+    else
+      echo "changed=true" >> "$GITHUB_OUTPUT"
+      echo "Hay cambios en las listas."
+    fi
 
-          git config user.email \
-            "41898282+github-actions[bot]@users.noreply.github.com"
-          git config user.name "github-actions[bot]"
+- name: Commit y push de las listas
+  if: steps.verify_diff.outputs.changed == 'true'
+  shell: bash
+  run: |
+    set -euo pipefail
 
-          git commit \
-            -m "🤖 Lista M3U - $(TZ=Europe/Madrid date +'%Y-%m-%d %H:%M:%S')"
+    git config user.email \
+      "41898282+github-actions[bot]@users.noreply.github.com"
+    git config user.name "github-actions[bot]"
 
-          git push
+    git commit \
+      -m "🤖 Lista M3U - $(TZ=Europe/Madrid date +'%Y-%m-%d %H:%M:%S')"
+
+    git push
