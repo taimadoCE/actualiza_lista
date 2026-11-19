@@ -119,7 +119,7 @@ jobs:
 
           FIRST_FILE = Path("lista_original_1.m3u")
           SECOND_FILE = Path("lista_original_2.m3u")
-          OUTPUT_FILE = Path("lista_unificada.m3u")
+          OUTPUT_FILE = Path("lista_origen.m3u")
 
           GROUP_ORDER = [
               "1RFEF",
@@ -414,18 +414,18 @@ jobs:
         run: |
           set -euo pipefail
 
-          if [ ! -s lista_unificada.m3u ]; then
+          if [ ! -s lista_origen.m3u ]; then
             echo "ERROR: La lista unificada está vacía."
             exit 1
           fi
 
-          if ! head -c 500 lista_unificada.m3u | grep -q '^#EXTM3U'; then
+          if ! head -c 500 lista_origen.m3u | grep -q '^#EXTM3U'; then
             echo "ERROR: La lista unificada no comienza con #EXTM3U."
             exit 1
           fi
 
-          echo "Canales en la lista unificada: $(grep -c '^#EXTINF' lista_unificada.m3u || true)"
-          echo "Grupos declarados: $(grep -c '^#EXTGRP' lista_unificada.m3u || true)"
+          echo "Canales en la lista unificada: $(grep -c '^#EXTINF' lista_origen.m3u || true)"
+          echo "Grupos declarados: $(grep -c '^#EXTGRP' lista_origen.m3u || true)"
 
       - name: Commit y push
         shell: bash
@@ -435,7 +435,7 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-          git add lista_unificada.m3u
+          git add lista_origen.m3u
 
           if git diff --cached --quiet; then
             echo "No hay cambios que confirmar."
