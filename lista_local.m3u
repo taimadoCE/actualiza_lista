@@ -13,8 +13,6 @@ http://192.168.1.254:6878/ace/getstream?id=9a55697bb16e7b5352e7a82456e4e67a56909
 http://192.168.1.254:6878/ace/getstream?id=d9e468180fcd3dcd45141dc09f56ea21eb88912e
 #EXTINF:-1 tvg-id="M+ Baloncesto 2" tvg-logo="https://www.adslzone.net/app/uploads-adslzone.net/2026/04/baloncesto-movistar-plus-canales.jpg" group-title="BALONCESTO",M+ Baloncesto 2 1080p **
 http://192.168.1.254:6878/ace/getstream?id=d43d6e5e0a6c9ec24f85bbab92d5c8a2771a1572
-#EXTINF:-1 tvg-logo="https://www.adslzone.net/app/uploads-adslzone.net/2026/04/baloncesto-movistar-plus-canales.jpg" group-title="BALONCESTO",M+ Baloncesto 3 1080p *
-http://192.168.1.254:6878/ace/getstream?id=54e1205da682d519fcc8ddeccff1626b8af86a6a
 #EXTINF:-1 tvg-logo="https://www.adslzone.net/app/uploads-adslzone.net/2026/04/baloncesto-movistar-plus-canales.jpg" group-title="BALONCESTO",M+ Baloncesto 4 1080p *
 http://192.168.1.254:6878/ace/getstream?id=d2b46901e81e835371df1e07c1cc15699b46ed52
 #EXTINF:-1 tvg-logo="https://www.adslzone.net/app/uploads-adslzone.net/2026/04/baloncesto-movistar-plus-canales.jpg" group-title="BALONCESTO",M+ Baloncesto 5 1080p *
@@ -193,10 +191,6 @@ http://192.168.1.254:6878/ace/getstream?id=8546cff89e4ee8bf3ad31cf6457c3bc2c4341
 http://192.168.1.254:6878/ace/getstream?id=3b2a8b41e7097c16b0468b42d7de0320886fa933
 #EXTINF:-1 tvg-logo="https://espnpressroom.com/us/files/2023/02/New-NBA-Logo.png" group-title="NBA",NBA ESPN 720p *
 http://192.168.1.254:6878/ace/getstream?id=c50472a723a9c8412dc51fc6ae2761e113014b00
-#EXTINF:-1 tvg-logo="https://espnpressroom.com/us/files/2023/02/New-NBA-Logo.png" group-title="NBA",NBA ESPN 1080p *
-http://192.168.1.254:6878/ace/getstream?id=15d2fc44828d86ff128dd17c07523baf3f8d6e10
-#EXTINF:-1 tvg-logo="https://www.vhv.rs/dpng/d/431-4310509_nba-league-pass-logo-png-transparent-nba-league.png" group-title="NBA",NBA League Pass 1080p *
-http://192.168.1.254:6878/ace/getstream?id=cd7f8f210268b161f399c626cad5b02678f86f7f
 #EXTINF:-1 tvg-logo="" tvg-id="" group-title="OTROS", A Punt FHDp ** a19c --> ELCANO
 http://192.168.1.254:6878/ace/getstream?id=89b7355df8e8a8f78c9d6e849b012c608d53a19c
 #EXTINF:-1 tvg-logo="" tvg-id="" group-title="OTROS", Auto Motor und Sport Channel 33de --> NEW LOOP
