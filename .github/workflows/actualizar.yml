@@ -211,6 +211,13 @@ jobs:
 
               return match.group(1).strip() if match else ""
 
+          def get_header(lines):
+              for line in lines:
+                  if line.startswith("#EXTM3U"):
+                      return line
+
+              return "#EXTM3U"
+
           def parse_m3u(path):
               text = path.read_text(
                   encoding="utf-8-sig",
@@ -295,6 +302,18 @@ jobs:
 
               return entries
 
+          first_text = FIRST_FILE.read_text(
+              encoding="utf-8-sig",
+              errors="replace",
+          )
+
+          first_lines = [
+              line.strip()
+              for line in first_text.splitlines()
+          ]
+
+          header = get_header(first_lines)
+
           first_entries = parse_m3u(FIRST_FILE)
           second_entries = parse_m3u(SECOND_FILE)
 
@@ -363,7 +382,7 @@ jobs:
               for group in missing_groups:
                   print(f"  - {group}")
 
-          output = ["#EXTM3U"]
+          output = [header]
 
           for group in GROUP_ORDER:
               logo = GROUP_LOGOS.get(group, "")
@@ -374,16 +393,10 @@ jobs:
 
               output.append(group_line)
 
-              group_entries = [
-                  entry
-                  for entry in merged
-                  if group in entry["groups"]
-              ]
-
-              for entry in group_entries:
-                  output.extend(entry["extra_lines"])
-                  output.append(entry["extinf"])
-                  output.append(entry["url"])
+          for entry in merged:
+              output.extend(entry["extra_lines"])
+              output.append(entry["extinf"])
+              output.append(entry["url"])
 
           OUTPUT_FILE.write_text(
               "\n".join(output) + "\n",
@@ -392,6 +405,7 @@ jobs:
 
           print(f"Lista unificada creada: {OUTPUT_FILE}")
           print(f"Canales finales: {len(merged)}")
+          print(f"Grupos declarados al principio: {len(GROUP_ORDER)}")
           print(f"Tamaño: {OUTPUT_FILE.stat().st_size} bytes")
           PY
 
