@@ -23,11 +23,26 @@ jobs:
         with:
           persist-credentials: true
 
+      - name: Diagnosticar acceso a la segunda lista
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          echo "IP pública del runner:"
+          curl -s https://api.ipify.org || true
+          echo
+
+          echo "Comprobando la segunda lista:"
+          curl -sS -o /dev/null -w 'HTTP %{http_code}\n' \
+            -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36" \
+            -H "Accept: */*" \
+            --max-time 60 \
+            "https://ipfs.bytokyo.dpdns.org/k51qzi5uqu5dh5qej4b9wlcr5i6vhc7rcfkekhrxqek5c9lk6gdaiik820fecs/hashes.m3u" || true
+
       - name: Descargar listas originales
         shell: bash
         env:
           FIRST_LIST_URL: "http://neweraes.atwebpages.com/lista_iptv.m3u"
-          # SUSTITUYE esta URL por la de la segunda lista:
           SECOND_LIST_URL: "https://ipfs.bytokyo.dpdns.org/k51qzi5uqu5dh5qej4b9wlcr5i6vhc7rcfkekhrxqek5c9lk6gdaiik820fecs/hashes.m3u"
         run: |
           set -euo pipefail
@@ -35,38 +50,58 @@ jobs:
           download_list() {
             local url="$1"
             local output="$2"
+            local attempt=0
+            local max_attempts=3
 
-            echo "Descargando lista desde: ${url}"
+            while [ "${attempt}" -lt "${max_attempts}" ]; do
+              attempt=$((attempt + 1))
+              echo "Intento ${attempt}/${max_attempts} para: ${url}"
 
-            curl \
-              --fail \
-              --location \
-              --silent \
-              --show-error \
-              --retry 5 \
-              --retry-delay 5 \
-              --retry-all-errors \
-              --connect-timeout 30 \
-              --max-time 180 \
-              --header "Cache-Control: no-cache" \
-              --output "${output}" \
-              "${url}"
+              extra_curl_args=()
 
-            if [ ! -s "${output}" ]; then
-              echo "ERROR: El archivo descargado está vacío: ${output}"
-              exit 1
-            fi
+              if [ "${attempt}" -eq 2 ]; then
+                extra_curl_args+=(--ipv4)
+              fi
 
-            if ! head -c 500 "${output}" \
-              | sed '1s/^\xEF\xBB\xBF//' \
-              | grep -q '^#EXTM3U'; then
-              echo "ERROR: La respuesta no parece una lista M3U válida: ${output}"
-              echo "Primeros bytes recibidos:"
-              head -c 500 "${output}"
-              exit 1
-            fi
+              if [ "${attempt}" -eq 3 ]; then
+                extra_curl_args+=(--http1.1)
+              fi
 
-            echo "Descarga completada: ${output} ($(wc -c < "${output}") bytes)"
+              if curl \
+                --fail \
+                --location \
+                --silent \
+                --show-error \
+                --connect-timeout 30 \
+                --max-time 180 \
+                --compressed \
+                -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36" \
+                -H "Accept: */*" \
+                -H "Accept-Language: es-ES,es;q=0.9,en;q=0.8" \
+                -H "Cache-Control: no-cache" \
+                "${extra_curl_args[@]}" \
+                --output "${output}" \
+                "${url}"; then
+
+                if [ -s "${output}" ] && head -c 500 "${output}" \
+                  | sed '1s/^\xEF\xBB\xBF//' \
+                  | grep -q '^#EXTM3U'; then
+                  echo "Descarga correcta: ${output} ($(wc -c < "${output}") bytes)"
+                  return 0
+                fi
+
+                echo "ERROR: La respuesta no es una lista M3U válida."
+                head -c 500 "${output}" || true
+              else
+                echo "ERROR: curl no pudo completar la descarga."
+              fi
+
+              rm -f "${output}"
+              sleep 15
+            done
+
+            echo "ERROR: No se pudo descargar ${url} tras ${max_attempts} intentos."
+            exit 1
           }
 
           download_list "${FIRST_LIST_URL}" "lista_original_1.m3u"
@@ -78,7 +113,6 @@ jobs:
           set -euo pipefail
 
           python3 <<'PY'
-          import os
           import re
           from pathlib import Path
           from urllib.parse import urlsplit, urlunsplit
@@ -139,38 +173,53 @@ jobs:
               "UFC": "https://pngimg.com/uploads/ufc/ufc_PNG64.png",
           }
 
-          def normalize_url(url: str) -> str:
+          def normalize_url(url):
               url = url.strip()
+
               try:
                   parts = urlsplit(url)
                   host = (parts.hostname or "").lower()
+
                   if host.startswith("www."):
                       host = host[4:]
 
                   netloc = host
+
                   if parts.port:
                       netloc = f"{host}:{parts.port}"
 
                   path = parts.path.rstrip("/")
-                  query = parts.query
 
-                  return urlunsplit((parts.scheme.lower(), netloc, path, query, ""))
+                  return urlunsplit(
+                      (
+                          parts.scheme.lower(),
+                          netloc,
+                          path,
+                          parts.query,
+                          "",
+                      )
+                  )
               except Exception:
                   return url.lower()
 
-          def extract_attr(line: str, attribute: str):
+          def extract_attr(line, attribute):
               match = re.search(
                   rf'{re.escape(attribute)}="([^"]*)"',
                   line,
                   re.IGNORECASE,
               )
+
               return match.group(1).strip() if match else ""
 
-          def parse_m3u(path: Path):
-              text = path.read_text(encoding="utf-8-sig", errors="replace")
-              lines = [line.strip() for line in text.splitlines()]
+          def parse_m3u(path):
+              text = path.read_text(
+                  encoding="utf-8-sig",
+                  errors="replace",
+              )
 
+              lines = [line.strip() for line in text.splitlines()]
               entries = []
+
               pending = {
                   "extinf": None,
                   "extra_lines": [],
@@ -185,21 +234,29 @@ jobs:
                       continue
 
                   if line.startswith("#EXTINF"):
-                      pending["extinf"] = line
-                      pending["extra_lines"] = []
-                      pending["groups"] = []
+                      pending = {
+                          "extinf": line,
+                          "extra_lines": [],
+                          "groups": [],
+                      }
                       continue
 
                   if line.startswith("#EXTGRP"):
-                      group_value = line.split(":", 1)[1].strip() if ":" in line else ""
+                      group_value = ""
+
+                      if ":" in line:
+                          group_value = line.split(":", 1)[1].strip()
 
                       group_title = extract_attr(group_value, "group-title")
+
                       if not group_title:
                           group_title = group_value
 
                       if group_title:
                           pending["groups"].extend(
-                              g.strip() for g in group_title.split(";") if g.strip()
+                              group.strip()
+                              for group in group_title.split(";")
+                              if group.strip()
                           )
 
                       pending["extra_lines"].append(line)
@@ -208,18 +265,23 @@ jobs:
                   if line.startswith("#"):
                       if pending["extinf"]:
                           pending["extra_lines"].append(line)
+
                       continue
 
                   if pending["extinf"]:
                       groups = pending["groups"][:]
 
                       if not groups:
-                          group_title = extract_attr(pending["extinf"], "group-title")
+                          group_title = extract_attr(
+                              pending["extinf"],
+                              "group-title",
+                          )
+
                           if group_title:
                               groups.extend(
-                                  g.strip()
-                                  for g in group_title.split(";")
-                                  if g.strip()
+                                  group.strip()
+                                  for group in group_title.split(";")
+                                  if group.strip()
                               )
 
                       if not groups:
@@ -247,10 +309,14 @@ jobs:
           second_entries = parse_m3u(SECOND_FILE)
 
           if not first_entries:
-              raise SystemExit("ERROR: La primera lista no contiene canales válidos.")
+              raise SystemExit(
+                  "ERROR: La primera lista no contiene canales válidos."
+              )
 
           if not second_entries:
-              raise SystemExit("ERROR: La segunda lista no contiene canales válidos.")
+              raise SystemExit(
+                  "ERROR: La segunda lista no contiene canales válidos."
+              )
 
           merged = []
           seen_urls = set()
@@ -283,18 +349,30 @@ jobs:
               )
 
           groups_found = sorted(
-              {group for entry in merged for group in entry["groups"]}
+              {
+                  group
+                  for entry in merged
+                  for group in entry["groups"]
+              }
           )
 
           missing_groups = [
-              group for group in GROUP_ORDER if group not in groups_found
+              group
+              for group in GROUP_ORDER
+              if group not in groups_found
           ]
 
-          print(f"Grupos detectados en la lista unificada: {len(groups_found)}")
+          print(
+              f"Grupos detectados en la lista unificada: "
+              f"{len(groups_found)}"
+          )
           print(f"Grupos esperados: {len(GROUP_ORDER)}")
 
           if missing_groups:
-              print("AVISO: Estos grupos esperados no tienen ningún canal:")
+              print(
+                  "AVISO: Estos grupos esperados no tienen ningún canal:"
+              )
+
               for group in missing_groups:
                   print(f"  - {group}")
 
@@ -302,7 +380,9 @@ jobs:
 
           for group in GROUP_ORDER:
               group_entries = [
-                  entry for entry in merged if group in entry["groups"]
+                  entry
+                  for entry in merged
+                  if group in entry["groups"]
               ]
 
               if not group_entries:
@@ -317,20 +397,14 @@ jobs:
               output.append(group_line)
 
               for entry in group_entries:
-                  extinf = entry["extinf"]
-
-                  if 'group-title="' not in extinf:
-                      extinf = re.sub(
-                          r'^(#EXTINF:[^,]*,)',
-                          rf'\1',
-                          extinf,
-                      )
-
                   output.extend(entry["extra_lines"])
-                  output.append(extinf)
+                  output.append(entry["extinf"])
                   output.append(entry["url"])
 
-          OUTPUT_FILE.write_text("\n".join(output) + "\n", encoding="utf-8")
+          OUTPUT_FILE.write_text(
+              "\n".join(output) + "\n",
+              encoding="utf-8",
+          )
 
           print(f"Lista unificada creada: {OUTPUT_FILE}")
           print(f"Canales finales: {len(merged)}")
