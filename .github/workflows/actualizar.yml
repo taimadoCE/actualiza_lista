@@ -1,4 +1,4 @@
-name: Actualizar listas M3U
+name: Actualizar lista M3U
 
 on:
   schedule:
@@ -9,7 +9,7 @@ permissions:
   contents: write
 
 concurrency:
-  group: actualizar-listas-m3u-${{ github.ref }}
+  group: actualizar-lista-m3u-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
@@ -23,408 +23,83 @@ jobs:
         with:
           persist-credentials: true
 
-      - name: Diagnosticar acceso a la segunda lista
-        shell: bash
-        run: |
-          set -euo pipefail
-
-          echo "IP pública del runner:"
-          curl -s https://api.ipify.org || true
-          echo
-
-          echo "Comprobando la segunda lista:"
-          curl -sS -o /dev/null -w 'HTTP %{http_code}\n' \
-            -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36" \
-            -H "Accept: */*" \
-            --max-time 60 \
-            "https://ipfs.bytokyo.dpdns.org/k51qzi5uqu5dh5qej4b9wlcr5i6vhc7rcfkekhrxqek5c9lk6gdaiik820fecs/hashes.m3u" || true
-
-      - name: Descargar listas originales
+      - name: Descargar lista M3U
         shell: bash
         env:
-          FIRST_LIST_URL: "http://neweraes.atwebpages.com/lista_iptv.m3u"
-          SECOND_LIST_URL: "https://ipfs.bytokyo.dpdns.org/k51qzi5uqu5dh5qej4b9wlcr5i6vhc7rcfkekhrxqek5c9lk6gdaiik820fecs/hashes.m3u"
+          LIST_URL: "https://ipfs.bytokyo.dpdns.org/k51qzi5uqu5dh5qej4b9wlcr5i6vhc7rcfkekhrxqek5c9lk6gdaiik820fecs/hashes.m3u"
         run: |
           set -euo pipefail
 
-          download_list() {
-            local url="$1"
-            local output="$2"
-            local attempt=0
-            local max_attempts=3
+          OUTPUT_FILE="lista_origen.m3u"
+          attempt=0
+          max_attempts=3
 
-            while [ "${attempt}" -lt "${max_attempts}" ]; do
-              attempt=$((attempt + 1))
-              echo "Intento ${attempt}/${max_attempts} para: ${url}"
+          while [ "${attempt}" -lt "${max_attempts}" ]; do
+            attempt=$((attempt + 1))
+            echo "Intento ${attempt}/${max_attempts} para: ${LIST_URL}"
 
-              extra_curl_args=()
+            extra_curl_args=()
 
-              if [ "${attempt}" -eq 2 ]; then
-                extra_curl_args+=(--ipv4)
+            if [ "${attempt}" -eq 2 ]; then
+              extra_curl_args+=(--ipv4)
+            fi
+
+            if [ "${attempt}" -eq 3 ]; then
+              extra_curl_args+=(--http1.1)
+            fi
+
+            if curl \
+              --fail \
+              --location \
+              --silent \
+              --show-error \
+              --connect-timeout 30 \
+              --max-time 180 \
+              --compressed \
+              -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36" \
+              -H "Accept: */*" \
+              -H "Accept-Language: es-ES,es;q=0.9,en;q=0.8" \
+              -H "Cache-Control: no-cache" \
+              "${extra_curl_args[@]}" \
+              --output "${OUTPUT_FILE}" \
+              "${LIST_URL}"; then
+
+              if [ -s "${OUTPUT_FILE}" ] && head -c 500 "${OUTPUT_FILE}" \
+                | sed '1s/^\xEF\xBB\xBF//' \
+                | grep -q '^#EXTM3U'; then
+                echo "Descarga correcta: ${OUTPUT_FILE} ($(wc -c < "${OUTPUT_FILE}") bytes)"
+                exit 0
               fi
 
-              if [ "${attempt}" -eq 3 ]; then
-                extra_curl_args+=(--http1.1)
-              fi
-
-              if curl \
-                --fail \
-                --location \
-                --silent \
-                --show-error \
-                --connect-timeout 30 \
-                --max-time 180 \
-                --compressed \
-                -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36" \
-                -H "Accept: */*" \
-                -H "Accept-Language: es-ES,es;q=0.9,en;q=0.8" \
-                -H "Cache-Control: no-cache" \
-                "${extra_curl_args[@]}" \
-                --output "${output}" \
-                "${url}"; then
-
-                if [ -s "${output}" ] && head -c 500 "${output}" \
-                  | sed '1s/^\xEF\xBB\xBF//' \
-                  | grep -q '^#EXTM3U'; then
-                  echo "Descarga correcta: ${output} ($(wc -c < "${output}") bytes)"
-                  return 0
-                fi
-
-                echo "ERROR: La respuesta no es una lista M3U válida."
-                head -c 500 "${output}" || true
-              else
-                echo "ERROR: curl no pudo completar la descarga."
-              fi
-
-              rm -f "${output}"
-              sleep 15
-            done
-
-            echo "ERROR: No se pudo descargar ${url} tras ${max_attempts} intentos."
-            exit 1
-          }
-
-          download_list "${FIRST_LIST_URL}" "lista_original_1.m3u"
-          download_list "${SECOND_LIST_URL}" "lista_original_2.m3u"
-
-      - name: Unificar listas sin duplicados
-        shell: bash
-        run: |
-          set -euo pipefail
-
-          python3 <<'PY'
-          import re
-          from pathlib import Path
-          from urllib.parse import urlsplit, urlunsplit
-
-          FIRST_FILE = Path("lista_original_1.m3u")
-          SECOND_FILE = Path("lista_original_2.m3u")
-          OUTPUT_FILE = Path("lista_origen.m3u")
-
-          GROUP_ORDER = [
-              "1RFEF",
-              "BALONCESTO",
-              "BUNDESLIGA",
-              "DAZN",
-              "DEPORTES",
-              "EUROSPORT",
-              "EVENTOS",
-              "FORMULA 1",
-              "FUTBOL INT",
-              "HYPERMOTION",
-              "LA LIGA",
-              "LIGA DE CAMPEONES",
-              "LIGA ENDESA",
-              "MOTOR",
-              "MOVISTAR",
-              "MOVISTAR DEPORTES",
-              "NBA",
-              "OTROS",
-              "RFEF TV",
-              "SPORT TV",
-              "TDT",
-              "TENNIS",
-              "UFC",
-          ]
-
-          GROUP_LOGOS = {
-              "1RFEF": "https://static.wikia.nocookie.net/logopedia/images/d/df/Logo_Primera_RFEF_2021.png/revision/latest?cb=20230620215900&path-prefix=es",
-              "BALONCESTO": "https://www.soyvisual.org/sites/default/files/styles/twitter_card/public/images/photos/dep_0002.jpg",
-              "BUNDESLIGA": "https://upload.wikimedia.org/wikipedia/en/thumb/d/df/Bundesliga_logo_%282017%29.svg/180px-Bundesliga_logo_%282017%29.svg.png",
-              "DAZN": "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d6/Dazn-logo.png/601px-Dazn-logo.png",
-              "DEPORTES": "https://i.ibb.co/6JGvLDWx/deportes-logo.png",
-              "EUROSPORT": "https://logos-world.net/wp-content/uploads/2022/05/Eurosport-Logo.png",
-              "EVENTOS": "https://i.ibb.co/Lh13t8zX/logo-eventos.png",
-              "FORMULA 1": "https://i.ibb.co/2Ndmtbp/f1.png",
-              "FUTBOL INT": "https://i.ibb.co/8nvKsJwL/logo-futbol-internacional.png",
-              "HYPERMOTION": "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d9/LaLiga_Hypermotion_2023_Vertical_Logo.svg/2335px-LaLiga_Hypermotion_2023_Vertical_Logo.svg.png",
-              "LA LIGA": "https://i.ibb.co/sp6dD8h2/laliga-logo.png",
-              "LIGA DE CAMPEONES": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8f/Liga_de_Campeones_por_Movistar_Plus%2B_2023_Logo.svg/2560px-Liga_de_Campeones_por_Movistar_Plus%2B_2023_Logo.svg.png",
-              "LIGA ENDESA": "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e7/Liga_Endesa_2019_logo.svg/1200px-Liga_Endesa_2019_logo.svg.png",
-              "MOTOR": "https://i.ibb.co/tTrS7848/logo-motor.png",
-              "MOVISTAR": "https://upload.wikimedia.org/wikipedia/commons/d/d9/Movistar%2B_Logo.png",
-              "MOVISTAR DEPORTES": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/83/Deportes_por_Movistar_Plus%2B_2022_logo.svg/2560px-Deportes_por_Movistar_Plus%2B_2022_logo.svg.png",
-              "NBA": "https://i.ibb.co/Z1Gw82tQ/logo-nba.png",
-              "OTROS": "https://i.ibb.co/zVNFsy0F/logo-otros.png",
-              "RFEF TV": "https://rfef.es/themes/custom/rfef/img/rfef-share.png",
-              "SPORT TV": "https://i.ibb.co/WpVvrFT6/logo-sport-tv.png",
-              "TDT": "https://i.ibb.co/j9xn42jB/logo-tdt.png",
-              "TENNIS": "https://i.ibb.co/ynMKPMw2/logo-tennis.png",
-              "UFC": "https://pngimg.com/uploads/ufc/ufc_PNG64.png",
-          }
-
-          def normalize_url(url):
-              url = url.strip()
-
-              try:
-                  parts = urlsplit(url)
-                  host = (parts.hostname or "").lower()
-
-                  if host.startswith("www."):
-                      host = host[4:]
-
-                  netloc = host
-
-                  if parts.port:
-                      netloc = f"{host}:{parts.port}"
-
-                  path = parts.path.rstrip("/")
-
-                  return urlunsplit(
-                      (
-                          parts.scheme.lower(),
-                          netloc,
-                          path,
-                          parts.query,
-                          "",
-                      )
-                  )
-              except Exception:
-                  return url.lower()
-
-          def extract_attr(line, attribute):
-              match = re.search(
-                  rf'{re.escape(attribute)}="([^"]*)"',
-                  line,
-                  re.IGNORECASE,
-              )
-
-              return match.group(1).strip() if match else ""
-
-          def get_header(lines):
-              for line in lines:
-                  if line.startswith("#EXTM3U"):
-                      return line
-
-              return "#EXTM3U"
-
-          def parse_m3u(path):
-              text = path.read_text(
-                  encoding="utf-8-sig",
-                  errors="replace",
-              )
-
-              lines = [line.strip() for line in text.splitlines()]
-              entries = []
-
-              current_groups = []
-              pending_extinf = None
-              pending_extra_lines = []
-
-              for line in lines:
-                  if not line:
-                      continue
-
-                  if line.startswith("#EXTM3U"):
-                      continue
-
-                  if line.startswith("#EXTGRP"):
-                      group_value = ""
-
-                      if ":" in line:
-                          group_value = line.split(":", 1)[1].strip()
-
-                      group_title = extract_attr(group_value, "group-title")
-
-                      if not group_title:
-                          group_title = group_value
-
-                      if group_title:
-                          current_groups = [
-                              group.strip()
-                              for group in group_title.split(";")
-                              if group.strip()
-                          ]
-
-                      continue
-
-                  if line.startswith("#EXTINF"):
-                      pending_extinf = line
-                      pending_extra_lines = []
-                      continue
-
-                  if line.startswith("#"):
-                      if pending_extinf:
-                          pending_extra_lines.append(line)
-
-                      continue
-
-                  if pending_extinf:
-                      groups = current_groups[:]
-
-                      extinf_group = extract_attr(
-                          pending_extinf,
-                          "group-title",
-                      )
-
-                      if extinf_group:
-                          groups = [
-                              group.strip()
-                              for group in extinf_group.split(";")
-                              if group.strip()
-                          ]
-
-                      if not groups:
-                          groups = ["OTROS"]
-
-                      entries.append(
-                          {
-                              "extinf": pending_extinf,
-                              "extra_lines": pending_extra_lines[:],
-                              "groups": groups,
-                              "url": line,
-                              "url_key": normalize_url(line),
-                          }
-                      )
-
-                      pending_extinf = None
-                      pending_extra_lines = []
-
-              return entries
-
-          first_text = FIRST_FILE.read_text(
-              encoding="utf-8-sig",
-              errors="replace",
-          )
-
-          first_lines = [
-              line.strip()
-              for line in first_text.splitlines()
-          ]
-
-          header = get_header(first_lines)
-
-          first_entries = parse_m3u(FIRST_FILE)
-          second_entries = parse_m3u(SECOND_FILE)
-
-          if not first_entries:
-              raise SystemExit(
-                  "ERROR: La primera lista no contiene canales válidos."
-              )
-
-          if not second_entries:
-              raise SystemExit(
-                  "ERROR: La segunda lista no contiene canales válidos."
-              )
-
-          merged = []
-          seen_urls = set()
-
-          for source_name, entries in (
-              ("primera", first_entries),
-              ("segunda", second_entries),
-          ):
-              added = 0
-              skipped = 0
-
-              for entry in entries:
-                  url_key = entry["url_key"]
-
-                  if not url_key:
-                      skipped += 1
-                      continue
-
-                  if url_key in seen_urls:
-                      skipped += 1
-                      continue
-
-                  seen_urls.add(url_key)
-                  merged.append(entry)
-                  added += 1
-
-              print(
-                  f"{source_name}: {added} canales añadidos, "
-                  f"{skipped} duplicados o sin URL omitidos"
-              )
-
-          groups_found = sorted(
-              {
-                  group
-                  for entry in merged
-                  for group in entry["groups"]
-              }
-          )
-
-          print(f"Grupos con canales: {len(groups_found)}")
-          print(f"Grupos esperados: {len(GROUP_ORDER)}")
-
-          missing_groups = [
-              group
-              for group in GROUP_ORDER
-              if group not in groups_found
-          ]
-
-          if missing_groups:
-              print(
-                  "AVISO: Estos grupos se incluirán sin canales:"
-              )
-
-              for group in missing_groups:
-                  print(f"  - {group}")
-
-          output = [header]
-
-          for group in GROUP_ORDER:
-              logo = GROUP_LOGOS.get(group, "")
-              group_line = f'#EXTGRP: group-title="{group}"'
-
-              if logo:
-                  group_line += f' group-logo="{logo}"'
-
-              output.append(group_line)
-
-          for entry in merged:
-              output.extend(entry["extra_lines"])
-              output.append(entry["extinf"])
-              output.append(entry["url"])
-
-          OUTPUT_FILE.write_text(
-              "\n".join(output) + "\n",
-              encoding="utf-8",
-          )
-
-          print(f"Lista unificada creada: {OUTPUT_FILE}")
-          print(f"Canales finales: {len(merged)}")
-          print(f"Grupos declarados al principio: {len(GROUP_ORDER)}")
-          print(f"Tamaño: {OUTPUT_FILE.stat().st_size} bytes")
-          PY
-
-      - name: Verificar lista unificada
+              echo "ERROR: La respuesta no es una lista M3U válida."
+              head -c 500 "${OUTPUT_FILE}" || true
+            else
+              echo "ERROR: curl no pudo completar la descarga."
+            fi
+
+            rm -f "${OUTPUT_FILE}"
+            sleep 15
+          done
+
+          echo "ERROR: No se pudo descargar la lista tras ${max_attempts} intentos."
+          exit 1
+
+      - name: Verificar lista descargada
         shell: bash
         run: |
           set -euo pipefail
 
           if [ ! -s lista_origen.m3u ]; then
-            echo "ERROR: La lista unificada está vacía."
+            echo "ERROR: La lista descargada está vacía."
             exit 1
           fi
 
           if ! head -c 500 lista_origen.m3u | grep -q '^#EXTM3U'; then
-            echo "ERROR: La lista unificada no comienza con #EXTM3U."
+            echo "ERROR: La lista descargada no comienza con #EXTM3U."
             exit 1
           fi
 
-          echo "Canales en la lista unificada: $(grep -c '^#EXTINF' lista_origen.m3u || true)"
+          echo "Canales en la lista: $(grep -c '^#EXTINF' lista_origen.m3u || true)"
           echo "Grupos declarados: $(grep -c '^#EXTGRP' lista_origen.m3u || true)"
 
       - name: Commit y push
@@ -442,5 +117,5 @@ jobs:
             exit 0
           fi
 
-          git commit -m "Actualizar lista M3U unificada"
+          git commit -m "Actualizar lista M3U"
           git push
